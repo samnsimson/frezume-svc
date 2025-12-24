@@ -1,0 +1,16 @@
+from sqlmodel import Session
+from app.database.models import User
+from app.user.dto import CreateUserDto
+from app.user.repository import UserRepository
+
+
+class UserService:
+    def __init__(self, session: Session):
+        self.user_repository = UserRepository(session)
+
+    async def get_user(self, id: str) -> User:
+        return self.user_repository.get(id)
+
+    def create_user(self, data: CreateUserDto, flush: bool = False):
+        user = User(name=data.name, username=data.username, email=data.email)
+        return self.user_repository.save(user, flush=flush)

@@ -1,32 +1,35 @@
-from abc import ABC, abstractmethod
-from typing import TypeVar, Type
+from typing import TypeVar
 from uuid import UUID
-from sqlmodel import SQLModel, Session
+from sqlmodel import SQLModel, Session, select
 
 T = TypeVar("T", bound=SQLModel)
 
 
-class BaseRepository[T](ABC):
-    def __init__(self, model: Type[T], session: Session):
-        self.model: Type[T] = model
-        self.session: Session = session
+class Repository[T]():
+    def __init__(self, session: Session):
+        self.session = session
 
-    @abstractmethod
-    def save(self, entity: T) -> T:
-        pass
+    def save(self, entity: T, flush: bool = False) -> T:
+        self.session.add(entity)
+        if flush: self.session.flush()
+        else: self.session.commit()
+        self.session.refresh(entity)
+        return entity
 
-    @abstractmethod
     def get(self, id: str | UUID) -> T | None:
-        pass
+        return self.session.exec(select(T).where(T.id == id)).first()
 
-    @abstractmethod
     def list(self) -> list[T]:
-        pass
+        return self.session.exec(select(T)).all()
 
-    @abstractmethod
-    def update(self, id: str | UUID, data: dict) -> T:
-        pass
+    def update(self, id: str | UUID, data: dict, flush: bool = False) -> T:
+        entity: T = self.get(id)
+        if not entity: raise ValueError(f"Entity with id {id} not found")
+        for key, value in data.items(): setattr(entity, key, value)
+        return self.save(entity, flush=flush)
 
-    @abstractmethod
     def delete(self, id: str | UUID) -> None:
-        pass
+        entity: T = self.get(id)
+        if not entity: raise ValueError(f"Entity with id {id} not found")
+        self.session.delete(entity)
+        self.session.commit()
