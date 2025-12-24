@@ -1,35 +1,46 @@
-from typing import TypeVar
+from typing import Any, Dict, Generic, Type, TypeVar
 from uuid import UUID
 from sqlmodel import SQLModel, Session, select
+import logging
 
 T = TypeVar("T", bound=SQLModel)
 
 
-class Repository[T]():
-    def __init__(self, session: Session):
+class Repository(Generic[T]):
+    logger = logging.getLogger(__name__)
+
+    def __init__(self, model: Type[T], session: Session):
+        self.model = model
         self.session = session
 
-    def save(self, entity: T, flush: bool = False) -> T:
-        self.session.add(entity)
-        if flush: self.session.flush()
-        else: self.session.commit()
-        self.session.refresh(entity)
-        return entity
+    def create(self, data: T, commit: bool = True) -> T:
+        try:
+            obj = self.model(**data.model_dump())
+            self.session.add(obj)
+            if commit:
+                self.session.commit()
+                self.session.refresh(obj)
+            return obj
+        except Exception as e:
+            self.session.rollback()
+            self.logger.error(f"Error saving entity: {e}")
+            raise e
 
     def get(self, id: str | UUID) -> T | None:
-        return self.session.exec(select(T).where(T.id == id)).first()
+        stmt = select(self.model).where(self.model.id == id)
+        return self.session.exec(stmt).first()
 
     def list(self) -> list[T]:
-        return self.session.exec(select(T)).all()
+        return self.session.exec(select(self.model)).all()
 
-    def update(self, id: str | UUID, data: dict, flush: bool = False) -> T:
-        entity: T = self.get(id)
+    def update(self, id: str | UUID, data: dict, commit: bool = True) -> T:
+        entity = self.get(id)
         if not entity: raise ValueError(f"Entity with id {id} not found")
         for key, value in data.items(): setattr(entity, key, value)
-        return self.save(entity, flush=flush)
+        return self.create(entity, commit=commit)
 
     def delete(self, id: str | UUID) -> None:
-        entity: T = self.get(id)
+        entity = self.get(id)
         if not entity: raise ValueError(f"Entity with id {id} not found")
         self.session.delete(entity)
         self.session.commit()

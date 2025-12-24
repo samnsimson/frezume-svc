@@ -10,4 +10,4 @@ class AccountService:
 
     def create_account(self, account: CreateAccountDto) -> Account:
         account = Account(user_id=account.user_id, provider_id=account.provider_id, password=account.password)
-        return self.account_repository.save(account)
+        return self.account_repository.create(account)

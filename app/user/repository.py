@@ -5,4 +5,4 @@ from sqlmodel import Session
 
 class UserRepository(Repository[User]):
     def __init__(self, session: Session):
-        super().__init__(session)
+        super().__init__(User, session)

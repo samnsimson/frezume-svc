@@ -22,9 +22,8 @@ class AuthService:
 
     def signup(self, dto: SignupDto) -> User:
         user_dto = CreateUserDto(name=dto.name, username=dto.username, email=dto.email)
-        user = self.user_service.create_user(user_dto, flush=True)
+        user = self.user_service.create_user(user_dto, commit=False)
         hashed_password = self.__hash_password(dto.password)
         account_dto = CreateAccountDto(user_id=user.id, provider_id="email", password=hashed_password)
         self.account_service.create_account(account_dto)
-        self.session.commit()
-        return User(**user.model_dump())
+        return user
