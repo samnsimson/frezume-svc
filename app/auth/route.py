@@ -11,5 +11,4 @@ router = APIRouter(tags=["auth"])
 @router.post("/signup", operation_id="signup", response_model=User)
 def signup(dto: SignupDto, session: Session = Depends(Database.get_session)):
     auth_service = AuthService(session)
-    user = auth_service.signup(dto)
-    return user
+    return auth_service.signup(dto)

@@ -1,4 +1,4 @@
-from typing import Any, Dict, Generic, Type, TypeVar
+from typing import Generic, Type, TypeVar
 from uuid import UUID
 from sqlmodel import SQLModel, Session, select
 import logging
@@ -13,13 +13,17 @@ class Repository(Generic[T]):
         self.model = model
         self.session = session
 
+    def __get_obj(self, data: T) -> T:
+        if isinstance(data, dict): return self.model(**data)
+        elif hasattr(data, 'model_dump'): return self.model(**data.model_dump())
+        else: return data
+
     def create(self, data: T, commit: bool = True) -> T:
         try:
-            obj = self.model(**data.model_dump())
+            obj = self.__get_obj(data)
             self.session.add(obj)
-            if commit:
-                self.session.commit()
-                self.session.refresh(obj)
+            if commit: self.session.commit()
+            else: self.session.flush()
             return obj
         except Exception as e:
             self.session.rollback()
