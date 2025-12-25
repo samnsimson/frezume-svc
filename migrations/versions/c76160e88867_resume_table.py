@@ -1,8 +1,8 @@
-"""init
+"""resume table
 
-Revision ID: 834449196334
-Revises: 
-Create Date: 2025-12-24 03:25:56.244718
+Revision ID: c76160e88867
+Revises: 36c2cf83455a
+Create Date: 2025-12-24 20:03:24.937208
 
 """
 from typing import Sequence, Union
@@ -13,8 +13,8 @@ import sqlmodel
 
 
 # revision identifiers, used by Alembic.
-revision: str = '834449196334'
-down_revision: Union[str, Sequence[str], None] = None
+revision: str = 'c76160e88867'
+down_revision: Union[str, Sequence[str], None] = '36c2cf83455a'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
