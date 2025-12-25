@@ -9,7 +9,7 @@ from sqlmodel import Session
 router = APIRouter(tags=["auth"])
 
 
-@router.post("/signin", operation_id="signin", response_model=LoginResponseDto)
+@router.post("/sign-in", operation_id="signIn", response_model=LoginResponseDto)
 def login(dto: LoginDto, response: Response, session: Session = Depends(Database.get_session)):
     auth_service = AuthService(session)
     result = auth_service.signin(dto)
@@ -20,7 +20,7 @@ def login(dto: LoginDto, response: Response, session: Session = Depends(Database
     return result
 
 
-@router.post("/signup", operation_id="signup", response_model=User)
+@router.post("/sign-up", operation_id="signUp", response_model=User)
 def signup(dto: SignupDto, session: Session = Depends(Database.get_session)):
     auth_service = AuthService(session)
     return auth_service.signup(dto)

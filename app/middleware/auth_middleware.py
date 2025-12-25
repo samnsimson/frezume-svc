@@ -1,4 +1,4 @@
-from fastapi import Request, HTTPException
+from fastapi import Request
 from fastapi.responses import JSONResponse
 from sqlmodel import Session
 from app.database import Database
@@ -8,7 +8,7 @@ from app.user.service import UserService
 
 
 def should_skip_path(path: str) -> bool:
-    skip_paths = ["/docs", "/redoc", "/openapi.json", "/favicon.ico"]
+    skip_paths = ["/api/docs", "/api/redoc", "/api/openapi.json", "/api/favicon.ico"]
     return path in skip_paths or path.startswith("/api/auth/")
 
 
@@ -31,30 +31,30 @@ def authenticate_user(token: str, db_session: Session) -> tuple:
     user_service = UserService(db_session)
     session_service = SessionService(db_session)
 
-    payload = auth_service.verify_jwt_token(token)
+    try: payload = auth_service.verify_jwt_token(token)
+    except Exception: return None, None, "Invalid or expired token"
+
     user_data = user_service.get_user(payload.user_id)
     session_data = session_service.get_session_by_id_or_token(payload.session_id)
 
-    if not user_data or not session_data: raise HTTPException(status_code=401, detail="Unauthorized")
-    if session_data.session_token != payload.session_token: raise HTTPException(status_code=401, detail="Unauthorized")
-    return user_data, session_data
+    if not user_data or not session_data: return None, None, "User or session not found"
+    if session_data.session_token != payload.session_token: return None, None, "Invalid session token"
+    return user_data, session_data, None
 
 
 async def auth_middleware(request: Request, call_next):
     if should_skip_path(request.url.path): return await call_next(request)
     token, from_cookie = extract_token(request)
-    if not token: raise HTTPException(status_code=401, detail="Unauthorized")
+    if not token: return create_unauthorized_response(clear_cookie=from_cookie)
 
     try:
         with Session(Database.engine) as db_session:
-            user_data, session_data = authenticate_user(token, db_session)
+            user_data, session_data, error = authenticate_user(token, db_session)
+            if error: return create_unauthorized_response(detail=error, clear_cookie=from_cookie)
             request.state.user = user_data
             request.state.session = session_data
-    except HTTPException as e:
-        if from_cookie: return create_unauthorized_response(e.detail, e.status_code, clear_cookie=True)
-        raise
-    except Exception:
-        if from_cookie: return create_unauthorized_response(clear_cookie=True)
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    except Exception as e:
+        error_detail = str(e) if str(e) else "Unauthorized"
+        return create_unauthorized_response(detail=error_detail, clear_cookie=from_cookie)
 
     return await call_next(request)
