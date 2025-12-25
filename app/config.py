@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     aws_region: Optional[str] = Field(default="us-east-1", env="AWS_REGION")
     aws_s3_bucket: Optional[str] = Field(default=None, env="AWS_S3_BUCKET")
     database_url: Optional[str] = Field(default=None, env="DATABASE_URL")
+    jwt_secret: Optional[str] = Field(default=None, env="JWT_SECRET")
 
     class Config:
         env_file = ".env"

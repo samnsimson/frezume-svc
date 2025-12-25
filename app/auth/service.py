@@ -1,9 +1,12 @@
+import jwt
 import hashlib
+from datetime import datetime, timezone
 from fastapi import HTTPException
 from sqlmodel import Session
 from app.account.dto import CreateAccountDto
 from app.account.service import AccountService
-from app.auth.dto import LoginDto, LoginResponseDto, SignupDto
+from app.auth.dto import JwtPayload, LoginDto, LoginResponseDto, SignupDto
+from app.config import settings
 from app.database.models import User, Session as SessionModel
 from app.user.dto import CreateUserDto
 from app.user.service import UserService
@@ -41,4 +44,7 @@ class AuthService:
         return user
 
     def create_jwt_token(self, user: User, session: SessionModel) -> str:
-        pass
+        payload = JwtPayload(user_id=user.id, session_id=session.id, session_token=session.session_token,
+                             username=user.username, email=user.email, iat=datetime.now(timezone.utc),
+                             exp=session.expires_at)
+        return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
