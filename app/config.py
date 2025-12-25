@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     aws_s3_bucket: Optional[str] = Field(default=None, env="AWS_S3_BUCKET")
     database_url: Optional[str] = Field(default=None, env="DATABASE_URL")
     jwt_secret: Optional[str] = Field(default=None, env="JWT_SECRET")
+    postmark_server_token: Optional[str] = Field(default=None, env="POSTMARK_SERVER_TOKEN")
 
     class Config:
         env_file = ".env"
