@@ -1,5 +1,4 @@
 from uuid import UUID
-from datetime import datetime
 from sqlmodel import SQLModel, Field
 from app.database.models import User, Session
 
@@ -29,3 +28,8 @@ class JwtPayload(SQLModel):
     email: str = Field(description="Email address")
     iat: int = Field(description="Issued at")
     exp: int = Field(description="Expires at")
+
+
+class UserSession(SQLModel):
+    user: User = Field(description="User")
+    session: Session = Field(description="Session")
