@@ -45,9 +45,10 @@ class AuthService:
 
     def create_jwt_token(self, user: User, session: SessionModel) -> str:
         payload = JwtPayload(user_id=user.id, session_id=session.id, session_token=session.session_token,
-                             username=user.username, email=user.email, iat=datetime.now(timezone.utc),
-                             exp=session.expires_at)
-        return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
+                             username=user.username, email=user.email, iat=int(datetime.now(timezone.utc).timestamp()),
+                             exp=int(session.expires_at.timestamp()))
+        payload_dict = payload.model_dump(mode='json')
+        return jwt.encode(payload_dict, settings.jwt_secret, algorithm="HS256")
 
     def verify_jwt_token(self, token: str) -> JwtPayload:
         try: return JwtPayload(**jwt.decode(token, settings.jwt_secret, algorithms=["HS256"]))
