@@ -48,3 +48,8 @@ class AuthService:
                              username=user.username, email=user.email, iat=datetime.now(timezone.utc),
                              exp=session.expires_at)
         return jwt.encode(payload, settings.jwt_secret, algorithm="HS256")
+
+    def verify_jwt_token(self, token: str) -> JwtPayload:
+        try: return JwtPayload(**jwt.decode(token, settings.jwt_secret, algorithms=["HS256"]))
+        except jwt.ExpiredSignatureError: raise HTTPException(status_code=401, detail="Token expired")
+        except jwt.InvalidTokenError: raise HTTPException(status_code=401, detail="Invalid token")

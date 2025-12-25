@@ -1,12 +1,60 @@
-from fastapi import Request
+from fastapi import Request, HTTPException
 from fastapi.responses import JSONResponse
-from app.config import settings
+from sqlmodel import Session
+from app.database import Database
+from app.auth.service import AuthService
+from app.session.service import SessionService
+from app.user.service import UserService
+
+
+def should_skip_path(path: str) -> bool:
+    skip_paths = ["/docs", "/redoc", "/openapi.json", "/favicon.ico"]
+    return path in skip_paths or path.startswith("/api/auth/")
+
+
+def extract_token(request: Request) -> tuple[str | None, bool]:
+    cookie_token = request.cookies.get("resumevx:auth")
+    auth_header = request.headers.get("Authorization")
+    if cookie_token: return cookie_token, True
+    if auth_header and auth_header.startswith("Bearer "): return auth_header.replace("Bearer ", ""), False
+    return None, False
+
+
+def create_unauthorized_response(detail: str = "Unauthorized", status_code: int = 401, clear_cookie: bool = False) -> JSONResponse:
+    response = JSONResponse(status_code=status_code, content={"detail": detail})
+    if clear_cookie: response.delete_cookie(key="resumevx:auth")
+    return response
+
+
+def authenticate_user(token: str, db_session: Session) -> tuple:
+    auth_service = AuthService(db_session)
+    user_service = UserService(db_session)
+    session_service = SessionService(db_session)
+
+    payload = auth_service.verify_jwt_token(token)
+    user_data = user_service.get_user(payload.user_id)
+    session_data = session_service.get_session_by_id_or_token(payload.session_id)
+
+    if not user_data or not session_data: raise HTTPException(status_code=401, detail="Unauthorized")
+    if session_data.session_token != payload.session_token: raise HTTPException(status_code=401, detail="Unauthorized")
+    return user_data, session_data
 
 
 async def auth_middleware(request: Request, call_next):
-    skip_paths = ["/docs", "/redoc", "/openapi.json", "/favicon.ico"]
-    if request.url.path in skip_paths: return await call_next(request)
-    secret = settings.api_key
-    token = request.headers.get("X-Api-Key")
-    # if token != secret: return JSONResponse(status_code=403, content={"message": "Unauthorized"})
+    if should_skip_path(request.url.path): return await call_next(request)
+    token, from_cookie = extract_token(request)
+    if not token: raise HTTPException(status_code=401, detail="Unauthorized")
+
+    try:
+        with Session(Database.engine) as db_session:
+            user_data, session_data = authenticate_user(token, db_session)
+            request.state.user = user_data
+            request.state.session = session_data
+    except HTTPException as e:
+        if from_cookie: return create_unauthorized_response(e.detail, e.status_code, clear_cookie=True)
+        raise
+    except Exception:
+        if from_cookie: return create_unauthorized_response(clear_cookie=True)
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
     return await call_next(request)

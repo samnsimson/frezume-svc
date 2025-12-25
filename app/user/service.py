@@ -1,3 +1,4 @@
+from uuid import UUID
 from sqlmodel import Session
 from app.database.models import User
 from app.user.dto import CreateUserDto
@@ -8,7 +9,7 @@ class UserService:
     def __init__(self, session: Session):
         self.user_repository = UserRepository(session)
 
-    async def get_user(self, id: str) -> User:
+    def get_user(self, id: UUID) -> User:
         return self.user_repository.get(id)
 
     def get_by_username_or_email(self, username: str) -> User:
