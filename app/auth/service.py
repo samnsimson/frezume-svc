@@ -31,7 +31,7 @@ class AuthService:
         if not user: raise HTTPException(status_code=401, detail="User not found")
         if not user.account: raise HTTPException(status_code=401, detail="User has no account")
         if not self.__verify_password(dto.password, user.account.password): raise HTTPException(status_code=401, detail="Invalid credentials")
-        session = self.session_service.create_session(user.id, commit=True)
+        session = self.session_service.create_session(user.id)
         return LoginResponseDto(user=user, session=session)
 
     def signup(self, dto: SignupDto):

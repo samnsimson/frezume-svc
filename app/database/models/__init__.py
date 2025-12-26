@@ -1,6 +1,6 @@
+from enum import Enum
 from typing import Optional, List
 from uuid import uuid4, UUID
-import sqlalchemy.dialects.postgresql as pg
 from sqlalchemy import Column
 from sqlmodel import DateTime, SQLModel, Field, Relationship, func
 from datetime import datetime, timezone, timedelta
@@ -12,6 +12,11 @@ def default_time():
 
 def default_expires_at():
     return datetime.now(timezone.utc) + timedelta(days=30)
+
+
+class VerificationType(str, Enum):
+    OTP = "otp"
+    LINK = "link"
 
 
 class BaseModel(SQLModel):
@@ -52,6 +57,7 @@ class Session(BaseModel, table=True):
 class Verification(BaseModel, table=True):
     user_id: UUID = Field(foreign_key="user.id")
     identifier: str = Field(description="Identifier")
+    type: VerificationType = Field(default=VerificationType.OTP, description="Verification type")
     token: str = Field(unique=True, index=True, description="Verification token")
     expires_at: datetime = Field(default_factory=default_expires_at, nullable=False, sa_type=DateTime(timezone=True))
     user: "User" = Relationship(back_populates="verifications")
