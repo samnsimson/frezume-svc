@@ -1,26 +1,27 @@
 from uuid import UUID
-from sqlmodel import SQLModel, Field
+from sqlmodel import Field
 from app.database.models import User, Session
+from app.lib.model import BaseModel
 
 
-class SignupDto(SQLModel):
+class SignupDto(BaseModel):
     name: str = Field(description="Name")
     username: str = Field(description="Username")
     email: str = Field(description="Email address")
     password: str = Field(description="Password")
 
 
-class LoginDto(SQLModel):
+class LoginDto(BaseModel):
     username: str = Field(description="Email address")
     password: str = Field(description="Password")
 
 
-class LoginResponseDto(SQLModel):
+class LoginResponseDto(BaseModel):
     user: User = Field(description="User")
     session: Session = Field(description="Session")
 
 
-class JwtPayload(SQLModel):
+class JwtPayload(BaseModel):
     user_id: UUID = Field(description="User ID")
     session_id: UUID = Field(description="Session ID")
     session_token: str = Field(description="Session token")
@@ -30,6 +31,6 @@ class JwtPayload(SQLModel):
     exp: int = Field(description="Expires at")
 
 
-class UserSession(SQLModel):
+class UserSession(BaseModel):
     user: User = Field(description="User")
     session: Session = Field(description="Session")

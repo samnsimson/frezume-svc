@@ -1,9 +1,10 @@
 from enum import Enum
 from typing import Optional, List
 from uuid import uuid4, UUID
-from sqlalchemy import Column
-from sqlmodel import DateTime, SQLModel, Field, Relationship, func
+from sqlmodel import DateTime, Field, Relationship, func
 from datetime import datetime, timezone, timedelta
+
+from app.lib.model import BaseModel
 
 
 def default_time():
@@ -19,13 +20,13 @@ class VerificationType(str, Enum):
     LINK = "link"
 
 
-class BaseModel(SQLModel):
+class BaseSQLModel(BaseModel):
     id: UUID = Field(default_factory=uuid4, primary_key=True, index=True, nullable=False)
     created_at: datetime = Field(default_factory=default_time, nullable=False, sa_type=DateTime(timezone=True))
     updated_at: datetime = Field(default_factory=default_time, nullable=False, sa_type=DateTime(timezone=True), sa_column_kwargs={"onupdate": func.now()})
 
 
-class User(BaseModel, table=True):
+class User(BaseSQLModel, table=True):
     name: str = Field()
     username: str = Field(unique=True, index=True)
     email: str = Field(unique=True, index=True)
@@ -37,7 +38,7 @@ class User(BaseModel, table=True):
     resumes: List["Resume"] = Relationship(back_populates="user", cascade_delete=True)
 
 
-class Account(BaseModel, table=True):
+class Account(BaseSQLModel, table=True):
     user_id: UUID = Field(foreign_key="user.id")
     provider_id: Optional[str] = Field(default=None, nullable=True)
     access_token: Optional[str] = Field(default=None, nullable=True)
@@ -47,14 +48,14 @@ class Account(BaseModel, table=True):
     user: "User" = Relationship(back_populates="account")
 
 
-class Session(BaseModel, table=True):
+class Session(BaseSQLModel, table=True):
     user_id: UUID = Field(foreign_key="user.id")
     session_token: str = Field(unique=True, index=True)
     expires_at: datetime = Field(default_factory=default_expires_at, nullable=False, sa_type=DateTime(timezone=True))
     user: "User" = Relationship(back_populates="sessions")
 
 
-class Verification(BaseModel, table=True):
+class Verification(BaseSQLModel, table=True):
     user_id: UUID = Field(foreign_key="user.id")
     identifier: str = Field(description="Identifier")
     type: VerificationType = Field(default=VerificationType.OTP, description="Verification type")
@@ -63,7 +64,7 @@ class Verification(BaseModel, table=True):
     user: "User" = Relationship(back_populates="verifications")
 
 
-class Resume(BaseModel, table=True):
+class Resume(BaseSQLModel, table=True):
     title: str = Field()
     description: Optional[str] = Field(default=None, nullable=True)
     url: Optional[str] = Field(default=None, nullable=True)

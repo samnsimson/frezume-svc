@@ -1,10 +1,12 @@
-from sqlmodel import SQLModel, Field
+from sqlmodel import Field
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
+from app.lib.model import BaseModel
 
-class CreateAccountDto(SQLModel):
+
+class CreateAccountDto(BaseModel):
     user_id: UUID = Field(description="User ID")
     password: str = Field(description="Password")
     provider_id: str = Field(description="Provider ID")

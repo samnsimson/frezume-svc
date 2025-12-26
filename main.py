@@ -9,6 +9,7 @@ from app.database import Database
 from app.error_handler import setup_error_handlers
 from app.auth.route import router as auth_router
 from app.user.route import router as user_router
+from app.document.route import router as document_router
 
 
 @asynccontextmanager
@@ -21,6 +22,7 @@ app = FastAPI(title="Resumevx AI SVC", description="AI Services for Resumevx", r
 
 app.include_router(auth_router, prefix="/auth")
 app.include_router(user_router, prefix="/user")
+app.include_router(document_router, prefix="/document")
 
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 app.add_middleware(BaseHTTPMiddleware, dispatch=auth_middleware)
