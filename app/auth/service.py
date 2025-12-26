@@ -31,7 +31,7 @@ class AuthService:
         if not user: raise HTTPException(status_code=401, detail="User not found")
         if not user.account: raise HTTPException(status_code=401, detail="User has no account")
         if not self.__verify_password(dto.password, user.account.password): raise HTTPException(status_code=401, detail="Invalid credentials")
-        session = self.session_service.create_session(user.id)
+        session = self.session_service.create_session(user.id, commit=True)
         return LoginResponseDto(user=user, session=session)
 
     def signup(self, dto: SignupDto):
@@ -39,8 +39,7 @@ class AuthService:
         user = self.user_service.create_user(user_dto, commit=False)
         hashed_password = self.__hash_password(dto.password)
         account_dto = CreateAccountDto(user_id=user.id, provider_id="email", password=hashed_password)
-        self.account_service.create_account(account_dto)
-        self.session.refresh(user)
+        self.account_service.create_account(account_dto, commit=False)
         return user
 
     def create_jwt_token(self, user: User, session: SessionModel) -> str:

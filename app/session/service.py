@@ -32,10 +32,10 @@ class SessionService:
         if isinstance(id_or_token, UUID): return self.get_session_by_id(id_or_token)
         if isinstance(id_or_token, str): return self.get_session_by_token(id_or_token)
 
-    def create_session(self, user_id: str) -> SessionModel:
+    def create_session(self, user_id: str, commit: bool = False) -> SessionModel:
         session_token = self.__generate_session_token()
         expires_at = datetime.now() + timedelta(days=30)
         session_data = SessionModel(user_id=user_id, session_token=session_token, expires_at=expires_at)
-        session = self.session_repository.create(session_data)
+        session = self.session_repository.create(session_data, commit=commit)
         self.session.refresh(session)
         return session

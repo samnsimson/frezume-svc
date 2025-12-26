@@ -6,6 +6,10 @@ from app.auth.dto import LoginDto, LoginResponseDto, SignupDto
 from app.auth.service import AuthService
 from sqlmodel import Session
 
+from app.email.service import EmailService
+from app.lib.context.transaction import transactional
+from app.verification.service import VerificationService
+
 router = APIRouter(tags=["auth"])
 
 
@@ -22,5 +26,14 @@ def login(dto: LoginDto, response: Response, session: Session = Depends(Database
 
 @router.post("/sign-up", operation_id="signUp", response_model=User)
 def signup(dto: SignupDto, session: Session = Depends(Database.get_session)):
-    auth_service = AuthService(session)
-    return auth_service.signup(dto)
+    with transactional(session) as ses:
+        auth_service = AuthService(ses)
+        email_service = EmailService(ses)
+        verification_service = VerificationService(ses)
+
+        user = auth_service.signup(dto)
+        verification = verification_service.create_verification("email", user.id, 'otp')
+        email_service.send_verification_otp(user.email, verification.token)
+
+        ses.refresh(user)
+        return user

@@ -18,17 +18,12 @@ class Repository(Generic[T]):
         elif hasattr(data, 'model_dump'): return self.model(**data.model_dump())
         else: return data
 
-    def create(self, data: T, commit: bool = True) -> T:
-        try:
-            obj = self.__get_obj(data)
-            self.session.add(obj)
-            if commit: self.session.commit()
-            else: self.session.flush()
-            return obj
-        except Exception as e:
-            self.session.rollback()
-            self.logger.error(f"Error saving entity: {e}")
-            raise e
+    def create(self, data: T, commit: bool = False) -> T:
+        obj = self.__get_obj(data)
+        self.session.add(obj)
+        if commit: self.session.commit()
+        else: self.session.flush()
+        return obj
 
     def get(self, id: str | UUID) -> T | None:
         stmt = select(self.model).where(self.model.id == id)
@@ -37,7 +32,7 @@ class Repository(Generic[T]):
     def list(self) -> list[T]:
         return self.session.exec(select(self.model)).all()
 
-    def update(self, id: str | UUID, data: dict, commit: bool = True) -> T:
+    def update(self, id: str | UUID, data: dict, commit: bool = False) -> T:
         entity = self.get(id)
         if not entity: raise ValueError(f"Entity with id {id} not found")
         for key, value in data.items(): setattr(entity, key, value)

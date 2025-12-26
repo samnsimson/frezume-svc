@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     port: Optional[int] = Field(default=8888, env="PORT")
     host: Optional[str] = Field(default="0.0.0.0", env="HOST")
     api_key: Optional[str] = Field(default=None, env="API_KEY")
+    app_url: Optional[str] = Field(default=None, env="APP_URL")
     nebius_api_key: Optional[str] = Field(default=None, env="NEBIUS_API_KEY")
     nebius_api_url: Optional[str] = Field(default=None, env="NEBIUS_API_URL")
     nebius_model: Optional[str] = Field(default=None, env="NEBIUS_MODEL")

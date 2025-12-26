@@ -15,6 +15,6 @@ class UserService:
     def get_by_username_or_email(self, username: str) -> User:
         return self.user_repository.get_by_username_or_email(username)
 
-    def create_user(self, data: CreateUserDto, commit: bool = True):
+    def create_user(self, data: CreateUserDto, commit: bool = False):
         user = User(name=data.name, username=data.username, email=data.email)
         return self.user_repository.create(user, commit=commit)
