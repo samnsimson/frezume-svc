@@ -1,11 +1,11 @@
 import jwt
 import hashlib
 from datetime import datetime, timezone
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from sqlmodel import Session
 from app.account.dto import CreateAccountDto
 from app.account.service import AccountService
-from app.auth.dto import JwtPayload, LoginDto, LoginResponseDto, SignupDto
+from app.auth.dto import JwtPayload, LoginDto, LoginResponseDto, SignupDto, UserSession
 from app.config import settings
 from app.database.models import User, Session as SessionModel
 from app.user.dto import CreateUserDto
@@ -43,9 +43,9 @@ class AuthService:
         return user
 
     def create_jwt_token(self, user: User, session: SessionModel) -> str:
-        payload = JwtPayload(user_id=user.id, session_id=session.id, session_token=session.session_token,
-                             username=user.username, email=user.email, iat=int(datetime.now(timezone.utc).timestamp()),
-                             exp=int(session.expires_at.timestamp()))
+        iat = int(datetime.now(timezone.utc).timestamp())
+        exp = int(session.expires_at.timestamp())
+        payload = JwtPayload(user=user, session=session, iat=iat, exp=exp)
         payload_dict = payload.model_dump(mode='json')
         return jwt.encode(payload_dict, settings.jwt_secret, algorithm="HS256")
 
@@ -53,3 +53,9 @@ class AuthService:
         try: return JwtPayload(**jwt.decode(token, settings.jwt_secret, algorithms=["HS256"]))
         except jwt.ExpiredSignatureError: raise HTTPException(status_code=401, detail="Token expired")
         except jwt.InvalidTokenError: raise HTTPException(status_code=401, detail="Invalid token")
+
+    def get_session_from_request(self, request: Request) -> UserSession | None:
+        cookie_token = request.cookies.get('resumevx:auth')
+        if not cookie_token: return None
+        payload = self.verify_jwt_token(cookie_token)
+        return UserSession(user=payload.user, session=payload.session)

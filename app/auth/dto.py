@@ -22,11 +22,8 @@ class LoginResponseDto(BaseModel):
 
 
 class JwtPayload(BaseModel):
-    user_id: UUID = Field(description="User ID")
-    session_id: UUID = Field(description="Session ID")
-    session_token: str = Field(description="Session token")
-    username: str = Field(description="Username")
-    email: str = Field(description="Email address")
+    user: User = Field(description="User")
+    session: Session = Field(description="Session")
     iat: int = Field(description="Issued at")
     exp: int = Field(description="Expires at")
 

@@ -39,3 +39,9 @@ class SessionService:
         session = self.session_repository.create(session_data, commit=commit)
         self.session.refresh(session)
         return session
+
+    def delete_session_by_token(self, session_token: str) -> bool:
+        session = self.session_repository.get_by_session_token(session_token)
+        if not session: return False
+        self.session_repository.delete(session.id)
+        return True
