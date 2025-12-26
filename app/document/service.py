@@ -1,9 +1,7 @@
-from typing import List
 import boto3
 from io import BytesIO
 from uuid import uuid4, UUID
 from datetime import datetime
-from docling.datamodel.extraction import ExtractedPageData
 from docling.document_converter import DocumentConverter
 from llama_cloud_services import ExtractionAgent
 from llama_cloud_services.extract import SourceText

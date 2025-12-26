@@ -1,10 +1,10 @@
-from typing import List
-from docling.datamodel.extraction import ExtractedPageData
 from fastapi import APIRouter, File, UploadFile
-from app.document.dto import DocumentData, UploadDocumentResult
+from app.document.dto import DocumentData, DocumentDataOutput, RewriteDocumentRequest, UploadDocumentResult
 from app.document.service import DocumentService
 from app.lib.dependency import DatabaseSession, AuthSession
 from app.lib.context.transaction import transactional
+from app.agent.dto import DocumentDependency
+from app.agent.document_rewrite_agent import document_rewrite_agent
 
 router = APIRouter(tags=["document"])
 
@@ -28,3 +28,10 @@ def extract_document(file_key: str, session: DatabaseSession):
     with transactional(session) as ses:
         document_service = DocumentService(ses)
         return document_service.extract_document(file_key)
+
+
+@router.post("/rewrite", operation_id="rewriteDocument", response_model=DocumentDataOutput)
+async def rewrite_document(data: RewriteDocumentRequest):
+    deps = DocumentDependency(job_requirement=data.job_requirement, resume_content=data.resume_content)
+    result = await document_rewrite_agent.run(user_prompt=data.input_message, deps=deps)
+    return result.output
