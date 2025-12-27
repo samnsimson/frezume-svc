@@ -10,6 +10,7 @@ from app.error_handler import setup_error_handlers
 from app.auth.route import router as auth_router
 from app.user.route import router as user_router
 from app.document.route import router as document_router
+from app.stripe.route import router as stripe_router
 
 
 @asynccontextmanager
@@ -26,6 +27,7 @@ app.add_middleware(BaseHTTPMiddleware, dispatch=auth_middleware)
 app.include_router(auth_router, prefix="/auth")
 app.include_router(user_router, prefix="/user")
 app.include_router(document_router, prefix="/document")
+app.include_router(stripe_router, prefix="/payments")
 
 
 setup_error_handlers(app)

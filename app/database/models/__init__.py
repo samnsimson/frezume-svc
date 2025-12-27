@@ -20,6 +20,13 @@ class VerificationType(str, Enum):
     LINK = "link"
 
 
+class Plan(str, Enum):
+    FREE = "free"
+    BASIC = "basic"
+    PREMIUM = "premium"
+    ENTERPRISE = "enterprise"
+
+
 class BaseSQLModel(BaseModel):
     id: UUID = Field(default_factory=uuid4, primary_key=True, index=True, nullable=False)
     created_at: datetime = Field(default_factory=default_time, nullable=False, sa_type=DateTime(timezone=True))
@@ -36,6 +43,7 @@ class User(BaseSQLModel, table=True):
     sessions: List["Session"] = Relationship(back_populates="user", cascade_delete=True)
     verifications: List["Verification"] = Relationship(back_populates="user", cascade_delete=True)
     resumes: List["Resume"] = Relationship(back_populates="user", cascade_delete=True)
+    subscription: Optional["Subscription"] = Relationship(back_populates="user", cascade_delete=True, sa_relationship_kwargs={"uselist": False})
 
 
 class Account(BaseSQLModel, table=True):
@@ -75,3 +83,16 @@ class Resume(BaseSQLModel, table=True):
     parsed_original: Optional[str] = Field(default=None, nullable=True)
     user_id: UUID = Field(foreign_key="user.id")
     user: "User" = Relationship(back_populates="resumes")
+
+
+class Subscription(BaseSQLModel, table=True):
+    user_id: UUID = Field(foreign_key="user.id", unique=True, index=True)
+    plan: Plan = Field(default=Plan.FREE)
+    stripe_subscription_id: Optional[str] = Field(default=None, nullable=True, unique=True, index=True)
+    stripe_price_id: Optional[str] = Field(default=None, nullable=True)
+    status: str = Field(default="active", description="Subscription status: active, canceled, past_due, etc.")
+    current_period_start: Optional[datetime] = Field(default=None, nullable=True, sa_type=DateTime(timezone=True))
+    current_period_end: Optional[datetime] = Field(default=None, nullable=True, sa_type=DateTime(timezone=True))
+    cancel_at_period_end: bool = Field(default=False)
+    canceled_at: Optional[datetime] = Field(default=None, nullable=True, sa_type=DateTime(timezone=True))
+    user: "User" = Relationship(back_populates="subscription")

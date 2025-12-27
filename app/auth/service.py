@@ -7,10 +7,11 @@ from app.account.dto import CreateAccountDto
 from app.account.service import AccountService
 from app.auth.dto import JwtPayload, LoginDto, LoginResponseDto, SignupDto, UserSession
 from app.config import settings
-from app.database.models import User, Session as SessionModel
+from app.database.models import User, Session as SessionModel, Subscription, Plan
 from app.user.dto import CreateUserDto
 from app.user.service import UserService
 from app.session.service import SessionService
+from app.stripe.service import StripeService
 
 
 class AuthService:
@@ -40,6 +41,10 @@ class AuthService:
         hashed_password = self.__hash_password(dto.password)
         account_dto = CreateAccountDto(user_id=user.id, provider_id="email", password=hashed_password)
         self.account_service.create_account(account_dto, commit=False)
+        stripe_service = StripeService(self.session)
+        stripe_service.create_customer(user)
+        subscription = Subscription(user_id=user.id, plan=Plan.FREE, status="active")
+        self.session.add(subscription)
         return user
 
     def create_jwt_token(self, user: User, session: SessionModel) -> str:

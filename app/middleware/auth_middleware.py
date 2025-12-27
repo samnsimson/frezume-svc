@@ -9,7 +9,7 @@ from app.user.service import UserService
 
 def should_skip_path(path: str) -> bool:
     skip_paths = ["/api/docs", "/api/redoc", "/api/openapi.json", "/api/favicon.ico"]
-    return path in skip_paths or path.startswith("/api/auth/")
+    return path in skip_paths or path.startswith("/api/auth/") or path.startswith("/api/stripe/webhook")
 
 
 def extract_token(request: Request) -> tuple[str | None, bool]:

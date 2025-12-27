@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     database_url: Optional[str] = Field(default=None, env="DATABASE_URL")
     jwt_secret: Optional[str] = Field(default=None, env="JWT_SECRET")
     postmark_server_token: Optional[str] = Field(default=None, env="POSTMARK_SERVER_TOKEN")
+    stripe_secret_key: Optional[str] = Field(default=None, env="STRIPE_SECRET_KEY")
+    stripe_publishable_key: Optional[str] = Field(default=None, env="STRIPE_PUBLISHABLE_KEY")
+    stripe_webhook_secret: Optional[str] = Field(default=None, env="STRIPE_WEBHOOK_SECRET")
 
     class Config:
         env_file = ".env"
