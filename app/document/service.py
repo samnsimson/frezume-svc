@@ -64,7 +64,7 @@ class DocumentService:
 
     async def extract_document(self, file_content: str) -> DocumentData:
         try:
-            prompt = f"Extract information out of the given resume, which is provided to you as an input in text format"
+            prompt = f"Extract information out of the given resume, which in a text format"
             extracted = await document_extract_agent.run(user_prompt=prompt, deps=file_content)
             return extracted.output
         except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to extract document: {str(e)}")
