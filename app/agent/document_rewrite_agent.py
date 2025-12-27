@@ -2,15 +2,15 @@ from pydantic_ai import Agent, RunContext
 from app.agent.dto import DocumentDependency
 from app.agent.models import LLMModel
 from app.document.dto import DocumentDataOutput
-from app.agent.prompts import document_system_prompt, document_instructions
+from app.agent.prompts import agent_prompts
 
-document_rewrite_agent = Agent(
+document_rewrite_agent = Agent[DocumentDependency, DocumentDataOutput](
     name="document_rewrite_agent",
     model=LLMModel.openai,
     deps_type=DocumentDependency,
     output_type=DocumentDataOutput,
-    system_prompt=document_system_prompt,
-    instructions=document_instructions,
+    system_prompt=agent_prompts["document_rewrite_agent"]["system_prompt"],
+    instructions=agent_prompts["document_rewrite_agent"]["instructions"],
 )
 
 

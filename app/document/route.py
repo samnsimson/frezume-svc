@@ -1,10 +1,8 @@
 from fastapi import APIRouter, File, UploadFile
-from app.document.dto import DocumentData, DocumentDataOutput, RewriteDocumentRequest, UploadDocumentResult
+from app.document.dto import DocumentData, DocumentDataOutput, ExtractDocumentRequest, RewriteDocumentRequest, UploadDocumentResult
 from app.document.service import DocumentService
 from app.lib.dependency import DatabaseSession, AuthSession
 from app.lib.context.transaction import transactional
-from app.agent.dto import DocumentDependency
-from app.agent.document_rewrite_agent import document_rewrite_agent
 
 router = APIRouter(tags=["document"])
 
@@ -17,21 +15,21 @@ def upload_document(session: DatabaseSession, user_session: AuthSession, file: U
 
 
 @router.post("/parse", operation_id="parseDocument", response_model=str)
-def parse_document(file_key: str, session: DatabaseSession):
+def parse_document(session: DatabaseSession, file: UploadFile = File(...)):
     with transactional(session) as ses:
         document_service = DocumentService(ses)
-        return document_service.parse_document(file_key)
+        return document_service.parse_document(file)
 
 
 @router.post("/extract", operation_id="extractDocument", response_model=DocumentData)
-def extract_document(file_key: str, session: DatabaseSession):
+async def extract_document(data: ExtractDocumentRequest, session: DatabaseSession):
     with transactional(session) as ses:
         document_service = DocumentService(ses)
-        return document_service.extract_document(file_key)
+        return await document_service.extract_document(data.file_content)
 
 
 @router.post("/rewrite", operation_id="rewriteDocument", response_model=DocumentDataOutput)
-async def rewrite_document(data: RewriteDocumentRequest):
-    deps = DocumentDependency(job_requirement=data.job_requirement, resume_content=data.resume_content)
-    result = await document_rewrite_agent.run(user_prompt=data.input_message, deps=deps)
-    return result.output
+async def rewrite_document(data: RewriteDocumentRequest, session: DatabaseSession):
+    with transactional(session) as ses:
+        document_service = DocumentService(ses)
+        return await document_service.rewrite_document(data)

@@ -4,11 +4,13 @@ from uuid import uuid4, UUID
 from datetime import datetime
 from docling.document_converter import DocumentConverter
 from llama_cloud_services import ExtractionAgent
-from llama_cloud_services.extract import SourceText
 from sqlmodel import Session
 from fastapi import UploadFile, HTTPException
 from app.config import settings
-from app.document.dto import DocumentData, UploadDocumentResult
+from app.document.dto import DocumentData, DocumentDataOutput, RewriteDocumentRequest, UploadDocumentResult
+from app.agent.dto import DocumentDependency
+from app.agent.document_rewrite_agent import document_rewrite_agent
+from app.agent.document_extract_agent import document_extract_agent
 from docling.datamodel.base_models import DocumentStream
 
 from app.lib.ai_clients import AIClients
@@ -52,18 +54,22 @@ class DocumentService:
             return response['Body'].read()
         except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to download document: {str(e)}")
 
-    def parse_document(self, file_key: str) -> str:
+    def parse_document(self, file: UploadFile) -> str:
         try:
-            document_content = self.download_document(file_key)
-            document_name = file_key.split('/')[-1]
-            source = DocumentStream(name=document_name, stream=BytesIO(document_content))
+            document_content = file.file.read()
+            source = DocumentStream(name=file.filename, stream=BytesIO(document_content))
             converted = self.converter.convert(source)
             return converted.document.export_to_text()
         except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to parse document: {str(e)}")
 
-    def extract_document(self, file_key: str) -> DocumentData:
+    async def extract_document(self, file_content: str) -> DocumentData:
         try:
-            document_content = self.parse_document(file_key)
-            extracted = self.extractor.extract(SourceText(text_content=document_content))
-            return extracted.data
+            prompt = f"Extract information out of the given resume, which is provided to you as an input in text format"
+            extracted = await document_extract_agent.run(user_prompt=prompt, deps=file_content)
+            return extracted.output
         except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to extract document: {str(e)}")
+
+    async def rewrite_document(self, data: RewriteDocumentRequest) -> DocumentDataOutput:
+        deps = DocumentDependency(job_requirement=data.job_requirement, resume_content=data.resume_content)
+        result = await document_rewrite_agent.run(user_prompt=data.input_message, deps=deps)
+        return result.output

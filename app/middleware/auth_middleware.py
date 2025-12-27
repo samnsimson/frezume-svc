@@ -42,6 +42,8 @@ def authenticate_user(token: str, db_session: Session) -> tuple:
 
 
 async def auth_middleware(request: Request, call_next):
+    # Allow CORS preflight requests (OPTIONS) to pass through
+    if request.method == "OPTIONS": return await call_next(request)
     if should_skip_path(request.url.path): return await call_next(request)
     token, from_cookie = extract_token(request)
     if not token: return create_unauthorized_response(clear_cookie=from_cookie)
