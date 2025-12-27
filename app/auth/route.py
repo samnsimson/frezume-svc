@@ -1,12 +1,17 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Request, Response
-from app.database.models import User
+from app.account.dto import CreateAccountDto
+from app.account.service import AccountService
+from app.database.models import Plan, User
 from app.auth.dto import LoginDto, LoginResponseDto, SignupDto, UserSession
 from app.auth.service import AuthService
 from app.email.service import EmailService
 from app.lib.context.transaction import transactional
 from app.lib.dependency import DatabaseSession
 from app.session.service import SessionService
+from app.stripe.service import StripeService
+from app.subscription.dto import CreateSubscriptionDto
+from app.subscription.service import SubscriptionService
 from app.verification.service import VerificationService
 
 router = APIRouter(tags=["auth"])
@@ -29,10 +34,18 @@ def signup(dto: SignupDto, session: DatabaseSession):
     with transactional(session) as ses:
         auth_service = AuthService(ses)
         email_service = EmailService(ses)
+        stripe_service = StripeService(ses)
+        account_service = AccountService(ses)
         verification_service = VerificationService(ses)
+        subscription_service = SubscriptionService(ses)
+
         user = auth_service.signup(dto)
+        account_service.create_account(CreateAccountDto(user_id=user.id, provider_id="email", password=dto.password))
         verification = verification_service.create_verification("email", user.id, 'otp')
+        stripe_customer = stripe_service.create_customer(user)
+        subscription_service.create_subscription(CreateSubscriptionDto(user_id=user.id, stripe_customer_id=stripe_customer, plan=Plan.FREE, status="active"))
         email_service.send_verification_otp(user.email, verification.token)
+
         ses.refresh(user)
         return user
 

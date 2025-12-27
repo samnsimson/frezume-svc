@@ -38,7 +38,6 @@ class User(BaseSQLModel, table=True):
     username: str = Field(unique=True, index=True)
     email: str = Field(unique=True, index=True)
     email_verified: bool = Field(default=False)
-    stripe_customer_id: Optional[str] = Field(default=None, nullable=True)
     account: "Account" = Relationship(back_populates="user", cascade_delete=True)
     sessions: List["Session"] = Relationship(back_populates="user", cascade_delete=True)
     verifications: List["Verification"] = Relationship(back_populates="user", cascade_delete=True)
@@ -88,6 +87,7 @@ class Resume(BaseSQLModel, table=True):
 class Subscription(BaseSQLModel, table=True):
     user_id: UUID = Field(foreign_key="user.id", unique=True, index=True)
     plan: Plan = Field(default=Plan.FREE)
+    stripe_customer_id: str = Field(nullable=False, unique=True, index=True)
     stripe_subscription_id: Optional[str] = Field(default=None, nullable=True, unique=True, index=True)
     stripe_price_id: Optional[str] = Field(default=None, nullable=True)
     status: str = Field(default="active", description="Subscription status: active, canceled, past_due, etc.")

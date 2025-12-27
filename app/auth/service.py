@@ -37,15 +37,13 @@ class AuthService:
         return LoginResponseDto(user=user, session=session)
 
     def signup(self, dto: SignupDto):
-        user_dto = CreateUserDto(name=dto.name, username=dto.username, email=dto.email)
-        user = self.user_service.create_user(user_dto, commit=False)
-        hashed_password = self.__hash_password(dto.password)
-        account_dto = CreateAccountDto(user_id=user.id, provider_id="email", password=hashed_password)
-        self.account_service.create_account(account_dto, commit=False)
-        self.stripe_service.create_customer(user)
-        subscription = Subscription(user_id=user.id, plan=Plan.FREE, status="active")
-        self.session.add(subscription)
-        return user
+        try:
+            self.user_service.get_by_username_or_email(dto.username)
+            raise HTTPException(status_code=400, detail="Username or email already exists")
+        except ValueError:
+            user_dto = CreateUserDto(name=dto.name, username=dto.username, email=dto.email)
+            user = self.user_service.create_user(user_dto, commit=False)
+            return user
 
     def create_jwt_token(self, user: User, session: SessionModel) -> str:
         iat = int(datetime.now(timezone.utc).timestamp())
