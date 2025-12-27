@@ -18,3 +18,6 @@ class UserService:
     def create_user(self, data: CreateUserDto, commit: bool = False):
         user = User(name=data.name, username=data.username, email=data.email)
         return self.user_repository.create(user, commit=commit)
+
+    def update_user(self, user_id: UUID, data: User, commit: bool = False) -> User:
+        return self.user_repository.update(user_id, data, commit=commit)

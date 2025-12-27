@@ -20,6 +20,7 @@ class AuthService:
         self.user_service = UserService(session)
         self.account_service = AccountService(session)
         self.session_service = SessionService(session)
+        self.stripe_service = StripeService(session)
 
     def __hash_password(self, password: str) -> str:
         return hashlib.sha256(password.encode()).hexdigest()
@@ -41,8 +42,7 @@ class AuthService:
         hashed_password = self.__hash_password(dto.password)
         account_dto = CreateAccountDto(user_id=user.id, provider_id="email", password=hashed_password)
         self.account_service.create_account(account_dto, commit=False)
-        stripe_service = StripeService(self.session)
-        stripe_service.create_customer(user)
+        self.stripe_service.create_customer(user)
         subscription = Subscription(user_id=user.id, plan=Plan.FREE, status="active")
         self.session.add(subscription)
         return user

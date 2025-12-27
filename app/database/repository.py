@@ -32,11 +32,16 @@ class Repository(Generic[T]):
     def list(self) -> list[T]:
         return self.session.exec(select(self.model)).all()
 
-    def update(self, id: str | UUID, data: dict, commit: bool = False) -> T:
+    def update(self, id: str | UUID, data: T, commit: bool = False) -> T:
         entity = self.get(id)
         if not entity: raise ValueError(f"Entity with id {id} not found")
-        for key, value in data.items(): setattr(entity, key, value)
-        return self.create(entity, commit=commit)
+        data_obj = self.__get_obj(data)
+        for key, value in data_obj.model_dump(exclude_unset=True).items():
+            if value is not None: setattr(entity, key, value)
+        self.session.add(entity)
+        if commit: self.session.commit()
+        else: self.session.flush()
+        return entity
 
     def delete(self, id: str | UUID) -> None:
         entity = self.get(id)
