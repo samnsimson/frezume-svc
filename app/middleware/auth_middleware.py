@@ -30,7 +30,6 @@ def authenticate_user(token: str, db_session: Session) -> tuple:
     auth_service = AuthService(db_session)
     user_service = UserService(db_session)
     session_service = SessionService(db_session)
-
     try: payload = auth_service.verify_jwt_token(token)
     except Exception: return None, None, "Invalid or expired token"
 
@@ -38,7 +37,7 @@ def authenticate_user(token: str, db_session: Session) -> tuple:
     session_data = session_service.get_session_by_token(payload.session.session_token)
 
     if not user_data or not session_data: return None, None, "User or session not found"
-    if session_data.session_token != payload.session_token: return None, None, "Invalid session token"
+    if session_data.session_token != payload.session.session_token: return None, None, "Invalid session token"
     return user_data, session_data, None
 
 

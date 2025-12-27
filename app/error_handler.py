@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from botocore.exceptions import ClientError
+from pydantic_ai.exceptions import ModelHTTPError, AgentRunError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -76,6 +77,26 @@ def setup_error_handlers(app: FastAPI):
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content={"detail": "Validation error", "errors": error_messages, "type": "ValidationError"}
+        )
+
+    @app.exception_handler(ModelHTTPError)
+    async def model_http_error_handler(request: Request, exc: ModelHTTPError):
+        """Handle AI model HTTP errors from pydantic_ai."""
+        error_detail = str(exc)
+        logger.error(f"ModelHTTPError: {error_detail} - Path: {request.url.path}")
+        if "Invalid JSON" in error_detail or "EOF" in error_detail:
+            detail = "The AI model response was truncated or invalid. The resume content may be too large. Please try with a shorter resume or contact support."
+        else: detail = f"AI model service error: {error_detail}"
+        return JSONResponse(status_code=status.HTTP_502_BAD_GATEWAY, content={"detail": detail, "type": "ModelServiceError", "service": "AI"})
+
+    @app.exception_handler(AgentRunError)
+    async def agent_run_error_handler(request: Request, exc: AgentRunError):
+        """Handle AI agent execution errors from pydantic_ai."""
+        error_message = str(exc)
+        logger.error(f"AgentRunError: {error_message} - Path: {request.url.path}")
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": f"Failed to process AI agent request: {error_message}", "type": "AgentError"}
         )
 
     @app.exception_handler(Exception)

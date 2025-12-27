@@ -16,7 +16,7 @@ def upload_document(session: DatabaseSession, user_session: AuthSession, file: U
         return document_service.upload_document(file, user_session.user.id)
 
 
-@router.post("/parse", operation_id="parseDocument")
+@router.post("/parse", operation_id="parseDocument", response_model=str)
 def parse_document(file_key: str, session: DatabaseSession):
     with transactional(session) as ses:
         document_service = DocumentService(ses)
