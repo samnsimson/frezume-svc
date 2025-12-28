@@ -1,12 +1,14 @@
 from app.database.models import Session as SessionModel
 from app.database.repository import Repository
-from sqlmodel import Session, select
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 
 class SessionRepository(Repository[SessionModel]):
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         super().__init__(SessionModel, session)
 
-    def get_by_session_token(self, session_token: str) -> SessionModel | None:
+    async def get_by_session_token(self, session_token: str) -> SessionModel | None:
         stmt = select(SessionModel).where(SessionModel.session_token == session_token)
-        return self.session.exec(stmt).first()
+        result = await self.session.exec(stmt)
+        return result.first()

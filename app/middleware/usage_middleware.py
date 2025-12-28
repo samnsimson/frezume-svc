@@ -1,6 +1,5 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
-from sqlmodel import Session
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.database import Database
 from app.database.models import Plan, User
@@ -17,13 +16,13 @@ class UsageMiddleware(BaseHTTPMiddleware):
             user: User | None = getattr(request.state, "user", None)
             if not user: return JSONResponse(status_code=401, content={"detail": "Authentication required to use this endpoint"})
 
-            with Session(Database.engine) as db:
+            async with Database.get_session() as db:
                 usage_service = UsageService(db)
                 subscription_service = SubscriptionService(db)
-                subscription = subscription_service.get_subscription(user.id)
+                subscription = await subscription_service.get_subscription(user.id)
                 if not subscription: return JSONResponse(status_code=403, content={"detail": "Subscription not found. Please contact support."})
                 if subscription.plan not in [Plan.FREE]: return await call_next(request)
-                usage = usage_service.get_usage(user.id)
+                usage = await usage_service.get_usage(user.id)
                 rewrites = usage.rewrites if usage else 0
                 if rewrites > 5: return JSONResponse(status_code=403, content={"detail": "You have exceeded the maximum number of rewrites (5) for the free plan. Please upgrade to continue.", "rewrites_used": rewrites, "rewrites_limit": 5})
                 return await call_next(request)

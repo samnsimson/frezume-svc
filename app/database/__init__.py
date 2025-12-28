@@ -19,14 +19,12 @@ class Database:
             await conn.run_sync(SQLModel.metadata.create_all)
 
     @staticmethod
-    @asynccontextmanager
     async def get_session() -> AsyncGenerator[AsyncSession, None]:
         async with Database.async_session() as session:
             try: yield session
             finally: await session.close()
 
     @staticmethod
-    @asynccontextmanager
     async def transaction() -> AsyncGenerator[AsyncSession, None]:
         try:
             async with Database.async_session() as session:

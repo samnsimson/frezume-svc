@@ -2,7 +2,7 @@ import jwt
 import hashlib
 from datetime import datetime, timezone
 from fastapi import HTTPException, Request
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 from app.account.dto import CreateAccountDto
 from app.account.service import AccountService
 from app.auth.dto import JwtPayload, LoginDto, LoginResponseDto, SignupDto, UserSession
@@ -15,7 +15,7 @@ from app.stripe.service import StripeService
 
 
 class AuthService:
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self.session = session
         self.user_service = UserService(session)
         self.account_service = AccountService(session)
@@ -28,21 +28,21 @@ class AuthService:
     def __verify_password(self, password: str, hashed_password: str) -> bool:
         return hashlib.sha256(password.encode()).hexdigest() == hashed_password
 
-    def signin(self, dto: LoginDto) -> LoginResponseDto:
-        user = self.user_service.get_by_username_or_email(dto.username)
+    async def signin(self, dto: LoginDto) -> LoginResponseDto:
+        user = await self.user_service.get_by_username_or_email(dto.username)
         if not user: raise HTTPException(status_code=401, detail="User not found")
         if not user.account: raise HTTPException(status_code=401, detail="User has no account")
         if not self.__verify_password(dto.password, user.account.password): raise HTTPException(status_code=401, detail="Invalid credentials")
-        session = self.session_service.create_session(user.id)
+        session = await self.session_service.create_session(user.id)
         return LoginResponseDto(user=user, session=session)
 
-    def signup(self, dto: SignupDto):
+    async def signup(self, dto: SignupDto):
         try:
-            self.user_service.get_by_username_or_email(dto.username)
+            await self.user_service.get_by_username_or_email(dto.username)
             raise HTTPException(status_code=400, detail="Username or email already exists")
         except ValueError:
             user_dto = CreateUserDto(name=dto.name, username=dto.username, email=dto.email)
-            user = self.user_service.create_user(user_dto, commit=False)
+            user = await self.user_service.create_user(user_dto, commit=False)
             return user
 
     def create_jwt_token(self, user: User, session: SessionModel) -> str:

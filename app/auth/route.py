@@ -19,7 +19,7 @@ router = APIRouter(tags=["auth"])
 @router.post("/sign-in", operation_id="signIn", response_model=LoginResponseDto)
 async def login(dto: LoginDto, response: Response, session: TransactionSession):
     auth_service = AuthService(session)
-    result = auth_service.signin(dto)
+    result = await auth_service.signin(dto)
     jwt_token = auth_service.create_jwt_token(result.user, result.session)
     expires_at = result.session.expires_at
     max_age = int((expires_at - datetime.now(timezone.utc)).total_seconds())
@@ -28,7 +28,7 @@ async def login(dto: LoginDto, response: Response, session: TransactionSession):
 
 
 @router.post("/sign-up", operation_id="signUp", response_model=User)
-def signup(dto: SignupDto, session: DatabaseSession):
+async def signup(dto: SignupDto, session: TransactionSession):
     auth_service = AuthService(session)
     email_service = EmailService(session)
     stripe_service = StripeService(session)
@@ -36,30 +36,30 @@ def signup(dto: SignupDto, session: DatabaseSession):
     verification_service = VerificationService(session)
     subscription_service = SubscriptionService(session)
 
-    user = auth_service.signup(dto)
-    account_service.create_account(CreateAccountDto(user_id=user.id, provider_id="email", password=dto.password))
-    verification = verification_service.create_verification("email", user.id, 'otp')
-    stripe_customer = stripe_service.create_customer(user)
-    subscription_service.create_subscription(CreateSubscriptionDto(user_id=user.id, stripe_customer_id=stripe_customer, plan=Plan.FREE, status="active"))
+    user = await auth_service.signup(dto)
+    await account_service.create_account(CreateAccountDto(user_id=user.id, provider_id="email", password=dto.password))
+    verification = await verification_service.create_verification("email", user.id, 'otp')
+    stripe_customer = await stripe_service.create_customer(user)
+    await subscription_service.create_subscription(CreateSubscriptionDto(user_id=user.id, stripe_customer_id=stripe_customer, plan=Plan.FREE, status="active"))
     email_service.send_verification_otp(user.email, verification.token)
 
-    session.refresh(user)
+    await session.refresh(user)
     return user
 
 
 @router.get("/sign-out", operation_id="signOut")
-def sign_out(response: Response, session: DatabaseSession, request: Request):
+async def sign_out(response: Response, session: TransactionSession, request: Request):
     auth_service = AuthService(session)
     session_service = SessionService(session)
     user_session = auth_service.get_session_from_request(request)
-    result = session_service.delete_session_by_token(user_session.session.session_token)
+    result = await session_service.delete_session_by_token(user_session.session.session_token)
     if not result: raise HTTPException(status_code=401, detail="Failed to sign out")
     response.delete_cookie(key="resumevx:auth")
     return {"message": "Signed out successfully"}
 
 
 @router.get("/get-session", operation_id="getSession", response_model=UserSession)
-def get_session(request: Request, session: DatabaseSession):
+async def get_session(request: Request, session: DatabaseSession):
     auth_service = AuthService(session)
     result = auth_service.get_session_from_request(request)
     return result

@@ -4,7 +4,7 @@ from uuid import uuid4, UUID
 from datetime import datetime
 from docling.document_converter import DocumentConverter
 from llama_cloud_services import ExtractionAgent
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 from fastapi import UploadFile, HTTPException
 from app.config import settings
 from app.document.dto import DocumentData, DocumentDataOutput, RewriteDocumentRequest, UploadDocumentResult
@@ -17,7 +17,7 @@ from app.lib.ai_clients import AIClients
 
 
 class DocumentService:
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self.session = session
         self.access_key_id = settings.aws_access_key_id
         self.secret_access_key = settings.aws_secret_access_key

@@ -15,7 +15,7 @@ from app.stripe.route import router as stripe_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Database.init_db()
+    await Database.init_db()
     yield
 
 

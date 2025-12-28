@@ -1,11 +1,11 @@
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 from postmarker.core import PostmarkClient
 from app.config import settings
 from fastapi import HTTPException
 
 
 class EmailService:
-    def __init__(self, session: Session):
+    def __init__(self, session: AsyncSession):
         self.session = session
         self.from_email = 'no-reply@wailist.com'
         self.client = PostmarkClient(server_token=settings.postmark_server_token)
