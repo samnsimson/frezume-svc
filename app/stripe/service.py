@@ -7,24 +7,30 @@ from app.config import settings
 from app.database.models import User, Subscription, Plan
 from app.stripe.repository import StripeRepository
 from app.user.service import UserService
+from app.subscription.service import SubscriptionService
 
 
 class StripeService:
     def __init__(self, session: Session):
         self.stripe_repository = StripeRepository(session)
         self.user_service = UserService(session)
+        self.subscription_service = SubscriptionService(session)
         stripe.api_key = settings.stripe_secret_key
 
     def create_customer(self, user: User) -> str:
         try:
             customer = stripe.Customer.create(email=user.email, name=user.name, metadata={"user_id": str(user.id)})
-            updated_user = User.model_construct(id=user.id, stripe_customer_id=customer.id)
-            self.user_service.update_user(user.id, updated_user, commit=False)
+            subscription = self.subscription_service.get_subscription(user.id)
+            if not subscription: return customer.id
+            updated_subscription = Subscription.model_construct(id=subscription.id, stripe_customer_id=customer.id)
+            self.stripe_repository.update_subscription(updated_subscription, commit=False)
             return customer.id
         except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to create Stripe customer: {str(e)}")
 
     def get_or_create_customer(self, user: User) -> str:
-        if user.stripe_customer_id: return user.stripe_customer_id
+        subscription = self.subscription_service.get_subscription(user.id)
+        if not subscription: raise HTTPException(status_code=404, detail="Subscription not found")
+        if subscription.stripe_customer_id: return subscription.stripe_customer_id
         return self.create_customer(user)
 
     def create_subscription(self, user_id: UUID, price_id: str) -> Subscription:
@@ -37,6 +43,7 @@ class StripeService:
             db_subscription = Subscription(
                 user_id=user_id,
                 plan=plan,
+                stripe_customer_id=customer_id,
                 stripe_subscription_id=subscription.id,
                 stripe_price_id=price_id,
                 status=subscription.status,
@@ -82,13 +89,9 @@ class StripeService:
             return self.stripe_repository.update_subscription(subscription, commit=False)
         except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to update subscription: {str(e)}")
 
-    def get_subscription(self, user_id: UUID) -> Subscription:
+    def get_subscription(self, user_id: UUID) -> Subscription | None:
         subscription = self.stripe_repository.get_by_user_id(user_id)
-        if not subscription:
-            user = self.user_service.get_user(user_id)
-            if not user: raise HTTPException(status_code=404, detail="User not found")
-            subscription = Subscription(user_id=user_id, plan=Plan.FREE, status="active")
-            self.stripe_repository.create(subscription, commit=False)
+        if not subscription: return None
         return subscription
 
     def create_checkout_session(self, user_id: UUID, price_id: str, success_url: str, cancel_url: str) -> str:
@@ -112,8 +115,10 @@ class StripeService:
         try:
             user = self.user_service.get_user(user_id)
             if not user: raise HTTPException(status_code=404, detail="User not found")
-            if not user.stripe_customer_id: raise HTTPException(status_code=400, detail="User has no Stripe customer")
-            session = stripe.billing_portal.Session.create(customer=user.stripe_customer_id, return_url=return_url)
+            subscription = self.subscription_service.get_subscription(user_id)
+            if not subscription: raise HTTPException(status_code=404, detail="Subscription not found")
+            if not subscription.stripe_customer_id: raise HTTPException(status_code=400, detail="Subscription has no Stripe customer")
+            session = stripe.billing_portal.Session.create(customer=subscription.stripe_customer_id, return_url=return_url)
             return session.url
         except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to create portal session: {str(e)}")
 

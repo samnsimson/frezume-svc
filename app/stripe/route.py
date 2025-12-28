@@ -12,7 +12,7 @@ from app.stripe.service import StripeService
 from app.lib.dependency import DatabaseSession, AuthSession
 from app.lib.context.transaction import transactional
 
-router = APIRouter(tags=["stripe"])
+router = APIRouter(tags=["payments"])
 
 
 @router.post("/checkout", operation_id="createCheckoutSession", response_model=CreateCheckoutSessionResponse)
@@ -31,11 +31,12 @@ def create_portal_session(data: CreatePortalSessionRequest, session: DatabaseSes
         return CreatePortalSessionResponse(url=url)
 
 
-@router.get("/subscription", operation_id="getSubscription", response_model=SubscriptionResponse)
+@router.get("/subscription", operation_id="getSubscription", response_model=SubscriptionResponse | None)
 def get_subscription(session: DatabaseSession, user_session: AuthSession):
     with transactional(session) as ses:
         stripe_service = StripeService(ses)
         subscription = stripe_service.get_subscription(user_session.user.id)
+        if not subscription: return None
         return SubscriptionResponse(
             id=str(subscription.id),
             user_id=str(subscription.user_id),
