@@ -5,7 +5,7 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 
-class StripeRepository(Repository[Subscription]):
+class PaymentRepository(Repository[Subscription]):
     def __init__(self, session: AsyncSession):
         super().__init__(Subscription, session)
 

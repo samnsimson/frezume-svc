@@ -1,25 +1,34 @@
 from typing import Optional
+from uuid import UUID
 from sqlmodel import Field
 from datetime import datetime
 from app.lib.model import BaseModel
 from app.database.models import Plan
 
 
-class CreateCheckoutSessionRequest(BaseModel):
+class CreateCheckoutSessionDto(BaseModel):
     price_id: str = Field(description="Stripe price ID for the subscription")
     success_url: str = Field(description="URL to redirect after successful payment")
     cancel_url: str = Field(description="URL to redirect after canceled payment")
 
 
-class CreateCheckoutSessionResponse(BaseModel):
+class CheckoutSessionDto(BaseModel):
+    user_id: UUID = Field(description="User ID")
+    price_id: str = Field(description="Stripe price ID for the subscription")
+    success_url: str = Field(description="URL to redirect after successful payment")
+    cancel_url: str = Field(description="URL to redirect after canceled payment")
+
+
+class CheckoutSession(BaseModel):
     url: str = Field(description="Checkout session URL")
 
 
-class CreatePortalSessionRequest(BaseModel):
+class CreatePortalSessionDto(BaseModel):
+    user_id: UUID = Field(description="User ID")
     return_url: str = Field(description="URL to return to after managing subscription")
 
 
-class CreatePortalSessionResponse(BaseModel):
+class PortalSession(BaseModel):
     url: str = Field(description="Billing portal session URL")
 
 

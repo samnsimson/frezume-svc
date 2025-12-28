@@ -10,7 +10,7 @@ from app.error_handler import setup_error_handlers
 from app.auth.route import router as auth_router
 from app.user.route import router as user_router
 from app.document.route import router as document_router
-from app.stripe.route import router as stripe_router
+from app.payment.route import router as stripe_router
 
 
 @asynccontextmanager

@@ -8,7 +8,7 @@ from app.auth.service import AuthService
 from app.email.service import EmailService
 from app.lib.dependency import DatabaseSession, TransactionSession
 from app.session.service import SessionService
-from app.stripe.service import StripeService
+from app.payment.service import PaymentService
 from app.subscription.dto import CreateSubscriptionDto
 from app.subscription.service import SubscriptionService
 from app.verification.service import VerificationService
@@ -31,7 +31,7 @@ async def login(dto: LoginDto, response: Response, session: TransactionSession):
 async def signup(dto: SignupDto, session: TransactionSession):
     auth_service = AuthService(session)
     email_service = EmailService(session)
-    stripe_service = StripeService(session)
+    stripe_service = PaymentService(session)
     account_service = AccountService(session)
     verification_service = VerificationService(session)
     subscription_service = SubscriptionService(session)

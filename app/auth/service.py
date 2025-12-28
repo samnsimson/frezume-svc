@@ -11,7 +11,7 @@ from app.database.models import User, Session as SessionModel, Subscription, Pla
 from app.user.dto import CreateUserDto
 from app.user.service import UserService
 from app.session.service import SessionService
-from app.stripe.service import StripeService
+from app.payment.service import PaymentService
 
 
 class AuthService:
@@ -20,7 +20,7 @@ class AuthService:
         self.user_service = UserService(session)
         self.account_service = AccountService(session)
         self.session_service = SessionService(session)
-        self.stripe_service = StripeService(session)
+        self.stripe_service = PaymentService(session)
 
     def __hash_password(self, password: str) -> str:
         return hashlib.sha256(password.encode()).hexdigest()
