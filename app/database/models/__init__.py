@@ -43,27 +43,28 @@ class User(BaseSQLModel, table=True):
     verifications: List["Verification"] = Relationship(back_populates="user", cascade_delete=True)
     resumes: List["Resume"] = Relationship(back_populates="user", cascade_delete=True)
     subscription: Optional["Subscription"] = Relationship(back_populates="user", cascade_delete=True, sa_relationship_kwargs={"uselist": False})
+    usage: List["Usage"] = Relationship(back_populates="user", cascade_delete=True)
 
 
 class Account(BaseSQLModel, table=True):
-    user_id: UUID = Field(foreign_key="user.id")
+    user_id: UUID = Field(foreign_key="user.id", ondelete="CASCADE")
     provider_id: Optional[str] = Field(default=None, nullable=True)
     access_token: Optional[str] = Field(default=None, nullable=True)
     refresh_token: Optional[str] = Field(default=None, nullable=True)
     expires_at: Optional[datetime] = Field(default=None, nullable=True)
-    password: str = Field()
+    password: str = Field(min_length=8, max_length=128)
     user: "User" = Relationship(back_populates="account")
 
 
 class Session(BaseSQLModel, table=True):
-    user_id: UUID = Field(foreign_key="user.id")
+    user_id: UUID = Field(foreign_key="user.id", ondelete="CASCADE")
     session_token: str = Field(unique=True, index=True)
     expires_at: datetime = Field(default_factory=default_expires_at, nullable=False, sa_type=DateTime(timezone=True))
     user: "User" = Relationship(back_populates="sessions")
 
 
 class Verification(BaseSQLModel, table=True):
-    user_id: UUID = Field(foreign_key="user.id")
+    user_id: UUID = Field(foreign_key="user.id", ondelete="CASCADE")
     identifier: str = Field(description="Identifier")
     type: VerificationType = Field(default=VerificationType.OTP, description="Verification type")
     token: str = Field(unique=True, index=True, description="Verification token")
@@ -80,12 +81,12 @@ class Resume(BaseSQLModel, table=True):
     data_final: Optional[str] = Field(default=None, nullable=True)
     parsed_final: Optional[str] = Field(default=None, nullable=True)
     parsed_original: Optional[str] = Field(default=None, nullable=True)
-    user_id: UUID = Field(foreign_key="user.id")
+    user_id: UUID = Field(foreign_key="user.id", ondelete="CASCADE")
     user: "User" = Relationship(back_populates="resumes")
 
 
 class Subscription(BaseSQLModel, table=True):
-    user_id: UUID = Field(foreign_key="user.id", unique=True, index=True)
+    user_id: UUID = Field(foreign_key="user.id", unique=True, index=True, ondelete="CASCADE")
     plan: Plan = Field(default=Plan.FREE)
     stripe_customer_id: str = Field(nullable=False, unique=True, index=True)
     stripe_subscription_id: Optional[str] = Field(default=None, nullable=True, unique=True, index=True)
@@ -96,3 +97,12 @@ class Subscription(BaseSQLModel, table=True):
     cancel_at_period_end: bool = Field(default=False)
     canceled_at: Optional[datetime] = Field(default=None, nullable=True, sa_type=DateTime(timezone=True))
     user: "User" = Relationship(back_populates="subscription")
+
+
+class Usage(BaseSQLModel, table=True):
+    user_id: UUID = Field(foreign_key="user.id", ondelete="CASCADE")
+    generations: int = Field(default=0)
+    revisions: int = Field(default=0)
+    downloads: int = Field(default=0)
+    uploads: int = Field(default=0)
+    user: "User" = Relationship(back_populates="usage")
