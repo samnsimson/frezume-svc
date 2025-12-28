@@ -36,7 +36,6 @@ class StripeService:
     def create_subscription(self, user_id: UUID, price_id: str) -> Subscription:
         try:
             user = self.user_service.get_user(user_id)
-            if not user: raise HTTPException(status_code=404, detail="User not found")
             customer_id = self.get_or_create_customer(user)
             subscription = stripe.Subscription.create(customer=customer_id, items=[{"price": price_id}], expand=["latest_invoice.payment_intent"])
             plan = self._get_plan_from_price_id(price_id)
@@ -57,7 +56,6 @@ class StripeService:
     def cancel_subscription(self, user_id: UUID, cancel_immediately: bool = False) -> Subscription:
         try:
             user = self.user_service.get_user(user_id)
-            if not user: raise HTTPException(status_code=404, detail="User not found")
             subscription = self.stripe_repository.get_by_user_id(user_id)
             if not subscription or not subscription.stripe_subscription_id: raise HTTPException(status_code=404, detail="Subscription not found")
             if cancel_immediately:
@@ -73,7 +71,6 @@ class StripeService:
     def update_subscription(self, user_id: UUID, price_id: str) -> Subscription:
         try:
             user = self.user_service.get_user(user_id)
-            if not user: raise HTTPException(status_code=404, detail="User not found")
             subscription = self.stripe_repository.get_by_user_id(user_id)
             if not subscription or not subscription.stripe_subscription_id: raise HTTPException(status_code=404, detail="Subscription not found")
             stripe_sub = stripe.Subscription.retrieve(subscription.stripe_subscription_id)
@@ -97,7 +94,6 @@ class StripeService:
     def create_checkout_session(self, user_id: UUID, price_id: str, success_url: str, cancel_url: str) -> str:
         try:
             user = self.user_service.get_user(user_id)
-            if not user: raise HTTPException(status_code=404, detail="User not found")
             customer_id = self.get_or_create_customer(user)
             session = stripe.checkout.Session.create(
                 customer=customer_id,
@@ -114,7 +110,6 @@ class StripeService:
     def create_portal_session(self, user_id: UUID, return_url: str) -> str:
         try:
             user = self.user_service.get_user(user_id)
-            if not user: raise HTTPException(status_code=404, detail="User not found")
             subscription = self.subscription_service.get_subscription(user_id)
             if not subscription: raise HTTPException(status_code=404, detail="Subscription not found")
             if not subscription.stripe_customer_id: raise HTTPException(status_code=400, detail="Subscription has no Stripe customer")

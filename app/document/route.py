@@ -3,6 +3,7 @@ from app.document.dto import DocumentData, DocumentDataOutput, ExtractDocumentRe
 from app.document.service import DocumentService
 from app.lib.dependency import DatabaseSession, AuthSession
 from app.lib.context.transaction import transactional
+from app.usage.service import UsageService
 
 router = APIRouter(tags=["document"])
 
@@ -29,7 +30,10 @@ async def extract_document(data: ExtractDocumentRequest, session: DatabaseSessio
 
 
 @router.post("/rewrite", operation_id="rewriteDocument", response_model=DocumentDataOutput)
-async def rewrite_document(data: RewriteDocumentRequest, session: DatabaseSession):
+async def rewrite_document(data: RewriteDocumentRequest, session: DatabaseSession, user_session: AuthSession):
     with transactional(session) as ses:
         document_service = DocumentService(ses)
-        return await document_service.rewrite_document(data)
+        usage_service = UsageService(ses)
+        response = await document_service.rewrite_document(data)
+        usage_service.increment_rewrites(user_session.user.id)
+        return response

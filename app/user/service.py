@@ -3,6 +3,7 @@ from sqlmodel import Session
 from app.database.models import User
 from app.user.dto import CreateUserDto
 from app.user.repository import UserRepository
+from fastapi import HTTPException
 
 
 class UserService:
@@ -10,7 +11,9 @@ class UserService:
         self.user_repository = UserRepository(session)
 
     def get_user(self, id: UUID) -> User:
-        return self.user_repository.get(id)
+        user = self.user_repository.get(id)
+        if not user: raise HTTPException(status_code=404, detail="User not found")
+        return user
 
     def get_by_username_or_email(self, username: str) -> User:
         return self.user_repository.get_by_username_or_email(username)

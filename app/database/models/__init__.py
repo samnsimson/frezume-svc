@@ -101,8 +101,7 @@ class Subscription(BaseSQLModel, table=True):
 
 class Usage(BaseSQLModel, table=True):
     user_id: UUID = Field(foreign_key="user.id", ondelete="CASCADE")
-    generations: int = Field(default=0)
-    revisions: int = Field(default=0)
+    rewrites: int = Field(default=0)
     downloads: int = Field(default=0)
     uploads: int = Field(default=0)
     user: "User" = Relationship(back_populates="usage")

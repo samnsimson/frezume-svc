@@ -2,8 +2,8 @@ import uvicorn
 from fastapi import FastAPI
 from app.config import settings
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.base import BaseHTTPMiddleware
-from app.middleware.auth_middleware import auth_middleware
+from app.middleware.auth_middleware import AuthMiddleware
+from app.middleware.usage_middleware import UsageMiddleware
 from contextlib import asynccontextmanager
 from app.database import Database
 from app.error_handler import setup_error_handlers
@@ -22,7 +22,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Resumevx AI SVC", description="AI Services for Resumevx", root_path="/api", lifespan=lifespan)
 
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
-app.add_middleware(BaseHTTPMiddleware, dispatch=auth_middleware)
+app.add_middleware(UsageMiddleware)
+app.add_middleware(AuthMiddleware)
 
 app.include_router(auth_router, prefix="/auth")
 app.include_router(user_router, prefix="/user")
