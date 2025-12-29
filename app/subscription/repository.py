@@ -13,3 +13,14 @@ class SubscriptionRepository(Repository[Subscription]):
         stmt = select(Subscription).where(Subscription.user_id == user_id)
         result = await self.session.exec(stmt)
         return result.first()
+
+    async def get_by_stripe_subscription_id(self, stripe_subscription_id: str) -> Subscription | None:
+        stmt = select(Subscription).where(Subscription.stripe_subscription_id == stripe_subscription_id)
+        result = await self.session.exec(stmt)
+        return result.first()
+
+    async def update_subscription(self, subscription: Subscription, commit: bool = False) -> Subscription:
+        self.session.add(subscription)
+        if commit: await self.session.commit()
+        else: await self.session.flush()
+        return subscription

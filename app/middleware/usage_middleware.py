@@ -19,7 +19,7 @@ class UsageMiddleware(BaseHTTPMiddleware):
             async with Database.get_session() as db:
                 usage_service = UsageService(db)
                 subscription_service = SubscriptionService(db)
-                subscription = await subscription_service.get_subscription(user.id)
+                subscription = await subscription_service.get_by_user_id(user.id)
                 if not subscription: return JSONResponse(status_code=403, content={"detail": "Subscription not found. Please contact support."})
                 if subscription.plan not in [Plan.FREE]: return await call_next(request)
                 usage = await usage_service.get_usage(user.id)

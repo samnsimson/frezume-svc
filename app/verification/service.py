@@ -17,7 +17,9 @@ class VerificationService:
         if type == 'otp': token = generate_otp()
         else: token = generate_jwt_token({"user_id": user_id})
         verification = Verification(user_id=user_id, identifier=identifier, token=token)
-        return await self.verification_repository.create(verification, commit=False)
+        data = await self.verification_repository.create(verification, commit=False)
+        print(f"Verification: {data}")
+        return data
 
     async def verify(self, token: str, identifier: str, user_id: UUID) -> bool:
         verification = await self.verification_repository.get_by_token(token)

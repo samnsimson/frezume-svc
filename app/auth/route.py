@@ -6,9 +6,9 @@ from app.database.models import Plan, User
 from app.auth.dto import DeleteAccountResponse, LoginDto, LoginResponseDto, SignupDto, UserSession
 from app.auth.service import AuthService
 from app.email.service import EmailService
-from app.lib.dependency import AuthSession, DatabaseSession, TransactionSession
+from app.lib.dependency import AuthSession, TransactionSession
 from app.session.service import SessionService
-from app.payment.service import PaymentService
+from app.stripe.service import StripeService
 from app.subscription.dto import CreateSubscriptionDto
 from app.subscription.service import SubscriptionService
 from app.verification.service import VerificationService
@@ -31,20 +31,18 @@ async def login(dto: LoginDto, response: Response, session: TransactionSession):
 async def signup(dto: SignupDto, session: TransactionSession):
     auth_service = AuthService(session)
     email_service = EmailService(session)
-    payment_service = PaymentService(session)
+    stripe_service = StripeService(session)
     account_service = AccountService(session)
     verification_service = VerificationService(session)
     subscription_service = SubscriptionService(session)
 
     user = await auth_service.signup(dto)
-    await account_service.create_account(CreateAccountDto(user_id=user.id, provider_id="email", password=dto.password))
+    account = await account_service.create_account(CreateAccountDto(user_id=user.id, provider_id="email", password=dto.password))
+    customer = await stripe_service.create_customer(user)
+    subscription_dto = CreateSubscriptionDto(user_id=user.id, stripe_customer_id=customer.id, plan=Plan.FREE, status="active")
+    subscription = await subscription_service.create_subscription(subscription_dto)
     verification = await verification_service.create_verification("email", user.id, 'otp')
-    stripe_customer = await payment_service.create_customer(user)
-    new_subscription = CreateSubscriptionDto(user_id=user.id, stripe_customer_id=stripe_customer, plan=Plan.FREE, status="active")
-    await subscription_service.create_subscription(new_subscription)
-    # email_service.send_verification_otp(user.email, verification.token)
-
-    await session.refresh(user)
+    email_service.send_verification_otp(user.email, verification.token)
     return user
 
 
@@ -60,16 +58,17 @@ async def sign_out(response: Response, session: TransactionSession, request: Req
 
 
 @router.get("/get-session", operation_id="getSession", response_model=UserSession)
-async def get_session(request: Request, session: DatabaseSession):
-    auth_service = AuthService(session)
-    result = auth_service.get_session_from_request(request)
-    return result
+async def get_session(user_session: AuthSession):
+    return user_session
 
 
 @router.delete("/account", operation_id="deleteAccount", response_model=DeleteAccountResponse)
 async def delete_account(session: TransactionSession, user_session: AuthSession):
     auth_service = AuthService(session)
-    payment_service = PaymentService(session)
-    await payment_service.cancel_subscription(user_session.user.id, cancel_immediately=True)
+    stripe_service = StripeService(session)
+    subscription_service = SubscriptionService(session)
+    subscription = await subscription_service.get_by_user_id(user_session.user.id)
+    if subscription and subscription.stripe_subscription_id:
+        await stripe_service.cancel_stripe_subscription(subscription.stripe_subscription_id, cancel_immediately=True)
     await auth_service.delete_account(user_session.user.id)
     return DeleteAccountResponse(status="success", message="Account deleted successfully")

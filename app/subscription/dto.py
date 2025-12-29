@@ -14,3 +14,11 @@ class CreateSubscriptionDto(BaseModel):
 class UpdateSubscriptionDto(BaseModel):
     plan: Plan = Field(description="Subscription plan")
     status: str = Field(description="Subscription status")
+
+
+class UpdateSubscriptionRequest(BaseModel):
+    price_id: str = Field(description="Stripe price ID for the new subscription plan")
+
+
+class CancelSubscriptionRequest(BaseModel):
+    cancel_immediately: bool = Field(default=False, description="Whether to cancel immediately or at period end")

@@ -28,7 +28,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         skip_paths = ["/api/docs", "/api/redoc", "/api/openapi.json", "/api/favicon.ico"]
         if path in skip_paths or path.startswith("/api/stripe/webhook"): return True
         if path.startswith("/api/auth/"):
-            if path == "/api/auth/account": return False
+            if path == "/api/auth/account" or path == "/api/auth/get-session": return False
             return True
         return False
 
