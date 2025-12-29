@@ -33,14 +33,14 @@ async def cancel_subscription(data: CancelSubscriptionRequest, session: Transact
 @router.post("/checkout", operation_id="createCheckoutSession", response_model=CheckoutSession)
 async def create_checkout_session(data: CreateCheckoutSessionDto, session: TransactionSession, user_session: AuthSession):
     subscription_service = SubscriptionService(session)
-    url = await subscription_service.create_checkout_session(user_session.user.id, data.price_id, data.success_url, data.cancel_url)
+    url = await subscription_service.create_checkout_session(user_session.user, data.price_id, data.success_url, data.cancel_url)
     return CheckoutSession(url=url)
 
 
 @router.post("/portal", operation_id="createPortalSession", response_model=PortalSession)
 async def create_portal_session(data: CreatePortalSessionDto, session: TransactionSession, user_session: AuthSession):
     subscription_service = SubscriptionService(session)
-    url = await subscription_service.create_portal_session(user_session.user.id, data.return_url)
+    url = await subscription_service.create_portal_session(user_session.user, data.return_url)
     return PortalSession(url=url)
 
 
