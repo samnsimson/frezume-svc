@@ -1,4 +1,5 @@
 from uuid import UUID
+from typing import Literal, Optional
 from sqlmodel import Field
 from app.database.models import User, Session
 from app.lib.model import BaseModel
@@ -31,3 +32,8 @@ class JwtPayload(BaseModel):
 class UserSession(BaseModel):
     user: User = Field(description="User")
     session: Session = Field(description="Session")
+
+
+class DeleteAccountResponse(BaseModel):
+    status: Literal["success", "failed"] = Field(description="Status")
+    message: Optional[str] = Field(default=None, description="Message")

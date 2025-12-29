@@ -50,5 +50,4 @@ class Repository(Generic[T]):
     async def delete(self, id: str | UUID) -> None:
         entity = await self.get(id)
         if not entity: raise ValueError(f"Entity with id {id} not found")
-        self.session.delete(entity)
-        await self.session.commit()
+        await self.session.delete(entity)

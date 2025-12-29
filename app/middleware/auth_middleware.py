@@ -26,7 +26,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
     def should_skip_path(self, path: str) -> bool:
         skip_paths = ["/api/docs", "/api/redoc", "/api/openapi.json", "/api/favicon.ico"]
-        return path in skip_paths or path.startswith("/api/auth/") or path.startswith("/api/stripe/webhook")
+        if path in skip_paths or path.startswith("/api/stripe/webhook"): return True
+        if path.startswith("/api/auth/"):
+            if path == "/api/auth/account": return False
+            return True
+        return False
 
     def extract_token(self, request: Request) -> tuple[str | None, bool]:
         cookie_token = request.cookies.get("resumevx:auth")

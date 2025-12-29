@@ -1,3 +1,4 @@
+from uuid import UUID
 import jwt
 import hashlib
 from datetime import datetime, timezone
@@ -66,3 +67,6 @@ class AuthService:
         if not cookie_token: return None
         payload = self.verify_jwt_token(cookie_token)
         return UserSession(user=payload.user, session=payload.session)
+
+    async def delete_account(self, user_id: UUID) -> None:
+        await self.user_service.delete_user(user_id)

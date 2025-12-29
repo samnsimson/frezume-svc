@@ -59,7 +59,7 @@ class PaymentService:
             subscription = await self.payment_repository.get_by_user_id(user_id)
             if not subscription or not subscription.stripe_subscription_id: raise HTTPException(status_code=404, detail="Subscription not found")
             if cancel_immediately:
-                await stripe.Subscription.delete(subscription.stripe_subscription_id)
+                await stripe.Subscription.cancel_async(subscription.stripe_subscription_id)
                 subscription.status = "canceled"
                 subscription.canceled_at = datetime.now(timezone.utc)
             else:
@@ -70,12 +70,11 @@ class PaymentService:
 
     async def update_subscription(self, user_id: UUID, price_id: str) -> Subscription:
         try:
-            user = await self.user_service.get_user(user_id)
             subscription = await self.payment_repository.get_by_user_id(user_id)
             if not subscription or not subscription.stripe_subscription_id: raise HTTPException(status_code=404, detail="Subscription not found")
             stripe_sub = stripe.Subscription.retrieve(subscription.stripe_subscription_id)
-            stripe.Subscription.modify(subscription.stripe_subscription_id, items=[
-                                       {"id": stripe_sub["items"]["data"][0].id, "price": price_id}], proration_behavior="always_invoice")
+            items = [{"id": stripe_sub["items"]["data"][0].id, "price": price_id}]
+            stripe.Subscription.modify(subscription.stripe_subscription_id, items=items, proration_behavior="always_invoice")
             plan = self._get_plan_from_price_id(price_id)
             subscription.plan = plan
             subscription.stripe_price_id = price_id
@@ -109,7 +108,6 @@ class PaymentService:
 
     async def create_portal_session(self, dto: CreatePortalSessionDto) -> str:
         try:
-            user = await self.user_service.get_user(dto.user_id)
             subscription = await self.subscription_service.get_subscription(dto.user_id)
             if not subscription: raise HTTPException(status_code=404, detail="Subscription not found")
             if not subscription.stripe_customer_id: raise HTTPException(status_code=400, detail="Subscription has no Stripe customer")

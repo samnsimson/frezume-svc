@@ -24,3 +24,6 @@ class UserService:
 
     async def update_user(self, user_id: UUID, data: User, commit: bool = False) -> User:
         return await self.user_repository.update(user_id, data, commit=commit)
+
+    async def delete_user(self, user_id: UUID) -> None:
+        await self.user_repository.delete(user_id)

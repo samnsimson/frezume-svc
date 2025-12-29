@@ -10,7 +10,7 @@ class PaymentRepository(Repository[Subscription]):
         super().__init__(Subscription, session)
 
     async def get_by_user_id(self, user_id: UUID) -> Subscription | None:
-        stmt = select(Subscription).where(Subscription.user_id == user_id)
+        stmt = select(Subscription).where(Subscription.user_id == str(user_id))
         result = await self.session.exec(stmt)
         return result.first()
 
