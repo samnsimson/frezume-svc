@@ -19,6 +19,11 @@ class SubscriptionRepository(Repository[Subscription]):
         result = await self.session.exec(stmt)
         return result.first()
 
+    async def get_by_stripe_customer_id(self, stripe_customer_id: str) -> Subscription | None:
+        stmt = select(Subscription).where(Subscription.stripe_customer_id == stripe_customer_id)
+        result = await self.session.exec(stmt)
+        return result.first()
+
     async def update_subscription(self, subscription: Subscription, commit: bool = False) -> Subscription:
         self.session.add(subscription)
         if commit: await self.session.commit()

@@ -1,12 +1,8 @@
 from fastapi import APIRouter, Request
 from app.stripe.service import StripeService
 from app.stripe.webhook import handle_stripe_webhook
-from app.stripe.dto import (
-    CreateCheckoutSessionDto,
-    CheckoutSession,
-    CreatePortalSessionDto,
-    PortalSession,
-)
+from app.subscription.service import SubscriptionService
+from app.stripe.dto import CheckoutSessionDto, CreateCheckoutSessionDto, CheckoutSession, CreatePortalSessionDto, PortalSession
 from app.lib.dependency import AuthSession, TransactionSession
 
 router = APIRouter(tags=["stripe"])
@@ -14,8 +10,6 @@ router = APIRouter(tags=["stripe"])
 
 @router.post("/checkout", operation_id="createCheckoutSession", response_model=CheckoutSession)
 async def create_checkout_session(data: CreateCheckoutSessionDto, session: TransactionSession, user_session: AuthSession):
-    from app.stripe.dto import CheckoutSessionDto
-    from app.subscription.service import SubscriptionService
     stripe_service = StripeService(session)
     subscription_service = SubscriptionService(session)
     subscription = await subscription_service.get_by_user_id(user_session.user.id)

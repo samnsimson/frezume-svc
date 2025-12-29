@@ -23,6 +23,9 @@ class SubscriptionService:
     async def get_by_user_id(self, user_id: UUID) -> Subscription | None:
         return await self.subscription_repository.get_by_user_id(user_id)
 
+    async def get_by_stripe_customer_id(self, stripe_customer_id: str) -> Subscription | None:
+        return await self.subscription_repository.get_by_stripe_customer_id(stripe_customer_id)
+
     async def update_subscription(self, user_id: UUID, data: UpdateSubscriptionDto, commit: bool = False) -> Subscription:
         subscription = await self.subscription_repository.get_by_user_id(user_id)
         if not subscription: raise HTTPException(status_code=404, detail="Subscription not found")
@@ -53,6 +56,24 @@ class SubscriptionService:
             subscription.current_period_end = datetime.fromtimestamp(updated_stripe_sub.current_period_end, tz=timezone.utc)
             return await self.subscription_repository.update_subscription(subscription, commit=False)
         except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to update subscription: {str(e)}")
+
+    async def link_stripe_subscription(self, user_id: UUID, stripe_subscription_id: str) -> Subscription:
+        try:
+            stripe_sub = await self.stripe_service.retrieve_stripe_subscription(stripe_subscription_id)
+            subscription = await self.subscription_repository.get_by_user_id(user_id)
+            if not subscription: raise HTTPException(status_code=404, detail="Subscription not found")
+            price_id = stripe_sub["items"]["data"][0]["price"]["id"]
+            plan = await self.stripe_service.get_plan_from_price_id(price_id)
+            subscription.stripe_subscription_id = stripe_subscription_id
+            subscription.stripe_price_id = price_id
+            subscription.plan = plan
+            subscription.status = stripe_sub["status"]
+            subscription.current_period_start = datetime.fromtimestamp(stripe_sub["current_period_start"], tz=timezone.utc)
+            subscription.current_period_end = datetime.fromtimestamp(stripe_sub["current_period_end"], tz=timezone.utc)
+            subscription.cancel_at_period_end = stripe_sub.get("cancel_at_period_end", False)
+            if stripe_sub.get("canceled_at"): subscription.canceled_at = datetime.fromtimestamp(stripe_sub["canceled_at"], tz=timezone.utc)
+            return await self.subscription_repository.update_subscription(subscription, commit=False)
+        except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to link Stripe subscription: {str(e)}")
 
     async def sync_from_stripe(self, stripe_subscription_id: str) -> Subscription:
         try:
