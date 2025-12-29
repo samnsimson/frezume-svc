@@ -38,7 +38,7 @@ async def signup(dto: SignupDto, session: TransactionSession):
 
     user = await auth_service.signup(dto)
     account = await account_service.create_account(CreateAccountDto(user_id=user.id, provider_id="email", password=dto.password))
-    customer = await stripe_service.create_customer(user)
+    customer = await stripe_service.create_customer(user.email, user.name, str(user.id))
     subscription_dto = CreateSubscriptionDto(user_id=user.id, stripe_customer_id=customer.id, plan=Plan.FREE, status="active")
     subscription = await subscription_service.create_subscription(subscription_dto)
     verification = await verification_service.create_verification("email", user.id, 'otp')

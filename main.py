@@ -10,7 +10,6 @@ from app.error_handler import setup_error_handlers
 from app.auth.route import router as auth_router
 from app.user.route import router as user_router
 from app.document.route import router as document_router
-from app.stripe.route import router as stripe_router
 from app.subscription.route import router as subscription_router
 
 
@@ -29,7 +28,6 @@ app.add_middleware(AuthMiddleware)
 app.include_router(auth_router, prefix="/auth")
 app.include_router(user_router, prefix="/user")
 app.include_router(document_router, prefix="/document")
-app.include_router(stripe_router, prefix="/stripe")
 app.include_router(subscription_router, prefix="/subscriptions")
 
 
