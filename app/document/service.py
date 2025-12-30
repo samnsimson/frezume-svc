@@ -69,9 +69,11 @@ class DocumentService:
     async def extract_document(self, file_content: str) -> DocumentData:
         try:
             prompt = "Extract information out of the given resume, which in a text format"
-            return (await document_extract_agent.run(user_prompt=prompt, deps=file_content)).output
+            result = await document_extract_agent.run(user_prompt=prompt, deps=file_content)
+            return result.output
         except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to extract document: {str(e)}")
 
     async def rewrite_document(self, data: RewriteDocumentRequest) -> DocumentDataOutput:
         deps = DocumentDependency(job_requirement=data.job_requirement, resume_content=data.resume_content)
-        return (await document_rewrite_agent.run(user_prompt=data.input_message, deps=deps)).output
+        result = await document_rewrite_agent.run(user_prompt=data.input_message, deps=deps)
+        return result.output

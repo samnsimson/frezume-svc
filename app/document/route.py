@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, File, UploadFile
 from app.document.dto import DocumentData, DocumentDataOutput, ExtractDocumentRequest, RewriteDocumentRequest, UploadDocumentResult
 from app.document.service import DocumentService
@@ -27,8 +28,12 @@ async def extract_document(data: ExtractDocumentRequest, session: TransactionSes
 
 @router.post("/rewrite", operation_id="rewriteDocument", response_model=DocumentDataOutput)
 async def rewrite_document(data: RewriteDocumentRequest, session: TransactionSession, user_session: AuthSession):
-    document_service = DocumentService(session)
-    usage_service = UsageService(session)
-    response = await document_service.rewrite_document(data)
-    await usage_service.increment_rewrites(user_session.user.id)
-    return response
+    try:
+        document_service = DocumentService(session)
+        usage_service = UsageService(session)
+        response = await document_service.rewrite_document(data)
+        await usage_service.increment_rewrites(user_session.user.id)
+        return response
+    except Exception as e:
+        logging.error(f"Failed to rewrite document: {str(e)}")
+        raise

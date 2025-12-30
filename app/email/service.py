@@ -13,11 +13,11 @@ class EmailService:
     def _build_email_body(self, token: str, is_link: bool = False) -> str:
         verification_content = f"{settings.app_url}/api/auth/verify-email?token={token}" if is_link else f"Your verification code: {token}"
         return f"""Email Verification
-Thank you for signing up! Please use the following {'link' if is_link else 'OTP'} to verify your email address:
-{verification_content}
-This {'link' if is_link else 'code'} will expire in 10 minutes. If you didn't request this verification, please ignore this email.
-Best regards,
-Resumevx Team"""
+            Thank you for signing up! Please use the following {'link' if is_link else 'OTP'} to verify your email address:
+            {verification_content}
+            This {'link' if is_link else 'code'} will expire in 10 minutes. If you didn't request this verification, please ignore this email.
+            Best regards,
+            Resumevx Team"""
 
     def send_email(self, to: str, subject: str, body: str) -> None:
         try: self.client.emails.send(From=self.from_email, To=to, Subject=subject, TextBody=body)

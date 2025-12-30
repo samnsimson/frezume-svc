@@ -12,11 +12,10 @@ class UsageMiddleware(BaseHTTPMiddleware):
         try:
             if request.method == "OPTIONS": return await call_next(request)
             if not self.should_check_usage(request.url.path): return await call_next(request)
-
             user: User | None = getattr(request.state, "user", None)
             if not user: return JSONResponse(status_code=401, content={"detail": "Authentication required to use this endpoint"})
 
-            async with Database.get_session() as db:
+            async with Database.async_session() as db:
                 usage_service = UsageService(db)
                 subscription_service = SubscriptionService(db)
                 subscription = await subscription_service.get_by_user_id(user.id)
@@ -27,7 +26,7 @@ class UsageMiddleware(BaseHTTPMiddleware):
                 if rewrites > 5: return JSONResponse(status_code=403, content={"detail": "You have exceeded the maximum number of rewrites (5) for the free plan. Please upgrade to continue.", "rewrites_used": rewrites, "rewrites_limit": 5})
                 return await call_next(request)
         except Exception as e:
-            return JSONResponse(status_code=500, content={"detail": f"Error checking usage limits: {str(e)}"})
+            return JSONResponse(status_code=400, content={"detail": f"Error checking usage limits: {str(e)}"})
 
     def should_check_usage(self, path: str) -> bool:
         return path == "/api/document/rewrite"

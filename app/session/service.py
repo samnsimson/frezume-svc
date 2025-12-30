@@ -25,11 +25,11 @@ class SessionService:
 
     async def get_session_by_id(self, session_id: UUID) -> SessionModel | None:
         session = await self.session_repository.get(session_id)
-        return await self.__validate_and_cleanup_session(session)
+        return await self._validate_and_cleanup(session)
 
     async def get_session_by_token(self, session_token: str) -> SessionModel | None:
         session = await self.session_repository.get_by_session_token(session_token)
-        return await self.__validate_and_cleanup_session(session)
+        return await self._validate_and_cleanup(session)
 
     async def get_session_by_id_or_token(self, id_or_token: UUID | str) -> SessionModel | None:
         if isinstance(id_or_token, UUID): return await self.get_session_by_id(id_or_token)
