@@ -1,7 +1,7 @@
 from uuid import UUID
 from fastapi import APIRouter, HTTPException
 from app.database.models import User
-from app.lib.dependency import AuthSession, DatabaseSession
+from app.lib.annotations import AuthSession, DatabaseSession
 from app.user.service import UserService
 
 router = APIRouter(tags=["user"])

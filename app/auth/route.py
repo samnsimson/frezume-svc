@@ -6,7 +6,7 @@ from app.database.models import Plan, User
 from app.auth.dto import DeleteAccountResponse, LoginDto, LoginResponseDto, SignupDto, UserSession
 from app.auth.service import AuthService
 from app.email.service import EmailService
-from app.lib.dependency import AuthSession, TransactionSession
+from app.lib.annotations import AuthSession, TransactionSession
 from app.session.service import SessionService
 from app.stripe.service import StripeService
 from app.subscription.dto import CreateSubscriptionDto

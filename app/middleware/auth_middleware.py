@@ -1,3 +1,4 @@
+import re
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -5,34 +6,38 @@ from app.database import Database
 from app.auth.service import AuthService
 from app.session.service import SessionService
 from app.user.service import UserService
+from typing import Set, Pattern
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
+    _exact_skip_paths: Set[str] = {"/api/docs", "/api/redoc", "/api/openapi.json", "/api/favicon.ico"}
+    _require_auth_paths: Set[str] = {"/api/auth/account", "/api/auth/get-session"}
+    _prefix_skip_paths: Set[str] = {"/api/subscriptions/webhook", "/static", "/api/docs", "/api/auth"}
+    _regex_skip_patterns: Set[Pattern] = {re.compile(r"^/api/auth/(?!account$|get-session$).*$")}
+
     async def dispatch(self, request: Request, call_next):
+        """Dispatches the request and authenticates the user"""
         if request.method == "OPTIONS": return await call_next(request)
         if self.should_skip_path(request.url.path): return await call_next(request)
         token, from_cookie = self.extract_token(request)
         if not token: return self.create_unauthorized_response(clear_cookie=from_cookie)
-        try:
-            async with Database.async_session() as db_session:
-                user_data, session_data, error = await self.authenticate_user(token, db_session)
-                if error: return self.create_unauthorized_response(detail=error, clear_cookie=from_cookie)
-                setattr(request.state, "user", user_data)
-                setattr(request.state, "session", session_data)
-        except Exception as e:
-            error_detail = str(e) if str(e) else "Unauthorized"
-            return self.create_unauthorized_response(detail=error_detail, clear_cookie=from_cookie)
+        async with Database.async_session() as db_session:
+            user_data, session_data, error = await self.authenticate_user(token, db_session)
+            if error: return self.create_unauthorized_response(detail=error, clear_cookie=from_cookie)
+            setattr(request.state, "user", user_data)
+            setattr(request.state, "session", session_data)
         return await call_next(request)
 
     def should_skip_path(self, path: str) -> bool:
-        skip_paths = ["/api/docs", "/api/redoc", "/api/openapi.json", "/api/favicon.ico"]
-        if path in skip_paths or path.startswith("/api/subscriptions/webhook"): return True
-        if path.startswith("/api/auth/"):
-            if path == "/api/auth/account" or path == "/api/auth/get-session": return False
-            return True
+        """Returns True if auth should be skipped for this path"""
+        if path in self._require_auth_paths: return False
+        if path in self._exact_skip_paths: return True
+        if any(path.startswith(prefix) for prefix in self._prefix_skip_paths): return True
+        if any(pattern.match(path) for pattern in self._regex_skip_patterns): return True
         return False
 
     def extract_token(self, request: Request) -> tuple[str | None, bool]:
+        """Extracts the token from the request"""
         cookie_token = request.cookies.get("resumevx:auth")
         auth_header = request.headers.get("Authorization")
         if cookie_token: return cookie_token, True
@@ -40,11 +45,13 @@ class AuthMiddleware(BaseHTTPMiddleware):
         return None, False
 
     def create_unauthorized_response(self, detail: str = "Unauthorized", status_code: int = 401, clear_cookie: bool = False) -> JSONResponse:
+        """Creates a JSON response for unauthorized requests"""
         response = JSONResponse(status_code=status_code, content={"detail": detail})
         if clear_cookie: response.delete_cookie(key="resumevx:auth")
         return response
 
     async def authenticate_user(self, token: str, db_session) -> tuple:
+        """Authenticates the user and returns the user and session data"""
         auth_service = AuthService(db_session)
         user_service = UserService(db_session)
         session_service = SessionService(db_session)

@@ -3,7 +3,7 @@ from app.database.models import Subscription
 from app.subscription.service import SubscriptionService
 from app.subscription.dto import UpdateSubscriptionRequest, CancelSubscriptionRequest, CreateCheckoutSessionDto, CheckoutSession, CreatePortalSessionDto, PortalSession
 from app.subscription.webhook import handle_stripe_webhook
-from app.lib.dependency import DatabaseSession, AuthSession, TransactionSession
+from app.lib.annotations import DatabaseSession, AuthSession, TransactionSession
 
 router = APIRouter(tags=["subscriptions"])
 
