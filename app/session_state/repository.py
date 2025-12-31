@@ -13,3 +13,9 @@ class SessionStateRepository(Repository[SessionState]):
         stmt = select(SessionState).where(SessionState.session_id == session_id)
         result = await self.session.exec(stmt)
         return result.first()
+
+    async def update_by_session_id(self, session_id: UUID, data: SessionState) -> SessionState:
+        session_state = await self.get_by_session_id(session_id)
+        if not session_state: raise ValueError(f"Session state with session id {session_id} not found")
+        session_state.model_construct(**data.model_dump(exclude_unset=True))
+        return await self.update(session_state.id, session_state)

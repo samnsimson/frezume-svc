@@ -5,7 +5,7 @@ from app.document.service import DocumentService
 from app.lib.dependency import AuthSession, TransactionSession
 from app.usage.service import UsageService
 from app.session_state.service import SessionStateService
-from app.session_state.dto import CreateSessionStateDto
+from app.session_state.dto import SessionStateDto
 
 router = APIRouter(tags=["document"])
 
@@ -15,19 +15,29 @@ async def upload_document(session: TransactionSession, user_session: AuthSession
     document_service = DocumentService(session)
     session_state_service = SessionStateService(session)
     result = await document_service.upload_document(file, user_session.user.id)
+    session_state_dto = SessionStateDto(session_id=user_session.session.id, document_name=result.filename, document_url=result.file_url)
+    await session_state_service.create_or_update_session_state(session_state_dto)
     return result
 
 
 @router.post("/parse", operation_id="parseDocument", response_model=str)
-async def parse_document(session: TransactionSession, file: UploadFile = File(...)):
+async def parse_document(session: TransactionSession, user_session: AuthSession, file: UploadFile = File(...)):
     document_service = DocumentService(session)
-    return document_service.parse_document(file)
+    session_state_service = SessionStateService(session)
+    result = await document_service.parse_document_async(file)
+    session_state_dto = SessionStateDto(session_id=user_session.session.id, document_parsed=result)
+    await session_state_service.create_or_update_session_state(session_state_dto)
+    return result
 
 
 @router.post("/extract", operation_id="extractDocument", response_model=DocumentData)
-async def extract_document(data: ExtractDocumentRequest, session: TransactionSession):
+async def extract_document(data: ExtractDocumentRequest, session: TransactionSession, user_session: AuthSession):
     document_service = DocumentService(session)
-    return await document_service.extract_document(data.file_content)
+    session_state_service = SessionStateService(session)
+    result = await document_service.extract_document(data.file_content)
+    session_state_dto = SessionStateDto(session_id=user_session.session.id, document_data=result)
+    await session_state_service.create_or_update_session_state(session_state_dto)
+    return result
 
 
 @router.post("/rewrite", operation_id="rewriteDocument", response_model=DocumentDataOutput)

@@ -4,6 +4,7 @@ from uuid import uuid4, UUID
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import DateTime, Field, Relationship, func, Column
 from datetime import datetime, timezone, timedelta
+from pydantic import field_serializer
 
 from app.document.dto import DocumentData
 from app.lib.model import BaseModel
@@ -118,3 +119,7 @@ class SessionState(BaseSQLModel, table=True):
     document_parsed: Optional[str] = Field(default=None, nullable=True)
     document_data: Optional[DocumentData] = Field(sa_type=JSONB, default=None, nullable=True)
     session: "Session" = Relationship(back_populates="state")
+
+    @field_serializer('document_data', when_used='json')
+    def serialize_document_data(self, v: dict | None) -> DocumentData | None:
+        return None if v is None else DocumentData(**v)

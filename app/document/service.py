@@ -1,4 +1,6 @@
 import boto3
+import asyncio
+import aioboto3
 from io import BytesIO
 from uuid import uuid4, UUID
 from datetime import datetime
@@ -47,13 +49,13 @@ class DocumentService:
     def _read_file_content(self, file: UploadFile) -> bytes:
         return file.file.read()
 
-    def upload_document(self, file: UploadFile, user_id: UUID) -> UploadDocumentResult:
-        try:
+    async def upload_document(self, file: UploadFile, user_id: UUID) -> UploadDocumentResult:
+        boto_session = aioboto3.Session()
+        async with boto_session.client('s3') as s3_client:
             file_content = self._read_file_content(file)
             file_key, file_url = self._generate_file_key_and_url(file.filename, user_id)
-            self.s3_client.put_object(Bucket=self.bucket_name, Key=file_key, Body=file_content, ContentType=file.content_type)
+            await s3_client.put_object(Bucket=self.bucket_name, Key=file_key, Body=file_content, ContentType=file.content_type)
             return UploadDocumentResult(file_key=file_key, file_url=file_url, filename=file.filename, file_size=file.size, file_storage_name=file_key.split('/')[-1], content_type=file.content_type)
-        except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to upload document: {str(e)}")
 
     def download_document(self, file_key: str) -> bytes:
         try: return self.s3_client.get_object(Bucket=self.bucket_name, Key=file_key)['Body'].read()
@@ -61,6 +63,10 @@ class DocumentService:
 
     def _create_document_stream(self, file: UploadFile) -> DocumentStream:
         return DocumentStream(name=file.filename, stream=BytesIO(self._read_file_content(file)))
+
+    async def parse_document_async(self, file: UploadFile) -> str:
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self.parse_document, file)
 
     def parse_document(self, file: UploadFile) -> str:
         try: return self.converter.convert(self._create_document_stream(file)).document.export_to_text()
