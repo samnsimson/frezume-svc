@@ -2,8 +2,10 @@ import logging
 from fastapi import APIRouter, File, UploadFile
 from app.document.dto import DocumentData, DocumentDataOutput, ExtractDocumentRequest, RewriteDocumentRequest, UploadDocumentResult
 from app.document.service import DocumentService
-from app.lib.dependency import DatabaseSession, AuthSession, TransactionSession
+from app.lib.dependency import AuthSession, TransactionSession
 from app.usage.service import UsageService
+from app.session_state.service import SessionStateService
+from app.session_state.dto import CreateSessionStateDto
 
 router = APIRouter(tags=["document"])
 
@@ -11,7 +13,9 @@ router = APIRouter(tags=["document"])
 @router.post("/upload", operation_id="uploadDocument", response_model=UploadDocumentResult)
 async def upload_document(session: TransactionSession, user_session: AuthSession, file: UploadFile = File(...)):
     document_service = DocumentService(session)
-    return document_service.upload_document(file, user_session.user.id)
+    session_state_service = SessionStateService(session)
+    result = await document_service.upload_document(file, user_session.user.id)
+    return result
 
 
 @router.post("/parse", operation_id="parseDocument", response_model=str)

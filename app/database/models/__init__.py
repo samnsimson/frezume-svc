@@ -1,9 +1,11 @@
 from enum import Enum
 from typing import Optional, List
 from uuid import uuid4, UUID
-from sqlmodel import DateTime, Field, Relationship, func
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlmodel import DateTime, Field, Relationship, func, Column
 from datetime import datetime, timezone, timedelta
 
+from app.document.dto import DocumentData
 from app.lib.model import BaseModel
 
 
@@ -60,6 +62,7 @@ class Session(BaseSQLModel, table=True):
     user_id: UUID = Field(foreign_key="user.id", ondelete="CASCADE")
     session_token: str = Field(unique=True, index=True)
     expires_at: datetime = Field(default_factory=default_expires_at, nullable=False, sa_type=DateTime(timezone=True))
+    state: "SessionState" = Relationship(back_populates="session", cascade_delete=True)
     user: "User" = Relationship(back_populates="sessions")
 
 
@@ -105,3 +108,13 @@ class Usage(BaseSQLModel, table=True):
     downloads: int = Field(default=0)
     uploads: int = Field(default=0)
     user: "User" = Relationship(back_populates="usage")
+
+
+class SessionState(BaseSQLModel, table=True):
+    __tablename__ = "session_state"
+    session_id: UUID = Field(foreign_key="session.id", ondelete="CASCADE")
+    document_name: Optional[str] = Field(default=None, nullable=True)
+    document_url: Optional[str] = Field(default=None, nullable=True)
+    document_parsed: Optional[str] = Field(default=None, nullable=True)
+    document_data: Optional[DocumentData] = Field(sa_type=JSONB, default=None, nullable=True)
+    session: "Session" = Relationship(back_populates="state")
