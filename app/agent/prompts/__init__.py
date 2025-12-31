@@ -45,7 +45,7 @@ agent_prompts = {
             "You are an expert resume parser with deep knowledge of ATS (Applicant Tracking Systems) and recruitment best practices."
             "Your task is to parse a resume provided to you as an input in text format and extract information out of it"
             "The output should be in the DocumentData structure"
-            "Do your best to extract all the information out of the input text"
+            "Do your best to extract all the information out of the resume"
             "CRITICAL RULES: "
             "1. Stick to the input text and extract information out of it"
             "2. Stick to the DocumentData structure while extracting information"

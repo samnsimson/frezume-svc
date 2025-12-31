@@ -45,8 +45,11 @@ async def rewrite_document(data: RewriteDocumentRequest, session: TransactionSes
     try:
         document_service = DocumentService(session)
         usage_service = UsageService(session)
+        session_state_service = SessionStateService(session)
         response = await document_service.rewrite_document(data)
+        session_state_dto = SessionStateDto(session_id=user_session.session.id, document_data=response.data)
         await usage_service.increment_rewrites(user_session.user.id)
+        await session_state_service.create_or_update_session_state(session_state_dto)
         return response
     except Exception as e:
         logging.error(f"Failed to rewrite document: {str(e)}")

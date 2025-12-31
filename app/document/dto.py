@@ -1,5 +1,6 @@
 from typing import List, Optional
 from sqlmodel import Field
+from pydantic import field_serializer
 from app.lib.model import BaseModel
 
 
@@ -17,7 +18,7 @@ class Basics(BaseModel):
     email: str = Field(description="Email address")
     phone: str = Field(description="Phone number")
     location: str = Field(description="City, State or full address location")
-    summary: str = Field(description="Professional summary or objective statement")
+    summary: List[str] = Field(description="Professional summary or objective statement in bullet points")
 
 
 class Experience(BaseModel):
