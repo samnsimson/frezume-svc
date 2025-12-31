@@ -118,6 +118,7 @@ class SessionState(BaseSQLModel, table=True):
     document_url: Optional[str] = Field(default=None, nullable=True)
     document_parsed: Optional[str] = Field(default=None, nullable=True)
     document_data: Optional[DocumentData] = Field(sa_type=JSONB, default=None, nullable=True)
+    job_description: Optional[str] = Field(default=None, nullable=True)
     session: "Session" = Relationship(back_populates="state")
 
     @field_serializer('document_data', when_used='json')
