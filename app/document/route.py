@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 from fastapi import APIRouter, File, UploadFile, BackgroundTasks
 from app.document.dto import DocumentData, DocumentDataOutput, ExtractDocumentRequest, RewriteDocumentRequest, UploadDocumentResult
 from app.document.service import DocumentService
@@ -9,14 +8,9 @@ from app.usage.service import UsageService
 from app.session_state.service import SessionStateService
 from app.session_state.dto import SessionStateDto
 from fastapi.responses import FileResponse
-from jinja2 import Environment, FileSystemLoader
 from app.document.task import cleanup_temp_file
 
 router = APIRouter(tags=["document"])
-
-# Setup Jinja2 environment
-template_dir = Path(__file__).parent.parent / "lib" / "templates" / "default"
-jinja_env = Environment(loader=FileSystemLoader(str(template_dir)))
 
 
 @router.post("/upload", operation_id="uploadDocument", response_model=UploadDocumentResult)
@@ -72,8 +66,7 @@ async def generate_document(session: TransactionSession, user_session: AuthSessi
         session_state_service = SessionStateService(session)
         session_state = await session_state_service.get_by_session_id(user_session.session.id)
         if not session_state or not session_state.document_data: return None
-        document_data = DocumentData(**session_state.document_data)
-        file_name, pdf_path = await document_service.generate_document("default", document_data)
+        file_name, pdf_path = await document_service.generate_document("default", session_state.document_data)
         background_tasks.add_task(cleanup_temp_file, pdf_path)
         return FileResponse(path=pdf_path, filename=file_name, media_type='application/pdf')
     except Exception as e:
