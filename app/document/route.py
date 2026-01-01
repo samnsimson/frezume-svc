@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
-from fastapi import APIRouter, File, UploadFile
-from app.document.dto import DocumentData, DocumentDataOutput, ExtractDocumentRequest, RewriteDocumentRequest, UploadDocumentResult, Basics, Experience, Education
+from fastapi import APIRouter, File, UploadFile, BackgroundTasks
+from app.document.dto import DocumentData, DocumentDataOutput, ExtractDocumentRequest, RewriteDocumentRequest, UploadDocumentResult
 from app.document.service import DocumentService
 from app.lib.annotations import AuthSession, TransactionSession
 from app.lib.annotations import UageGuard
@@ -10,7 +10,7 @@ from app.session_state.service import SessionStateService
 from app.session_state.dto import SessionStateDto
 from fastapi.responses import FileResponse
 from jinja2 import Environment, FileSystemLoader
-from weasyprint import HTML
+from app.document.task import cleanup_temp_file
 
 router = APIRouter(tags=["document"])
 
@@ -66,71 +66,16 @@ async def rewrite_document(data: RewriteDocumentRequest, session: TransactionSes
 
 
 @router.get("/generate", operation_id="generateDocument")
-async def generate_document():
+async def generate_document(session: TransactionSession, user_session: AuthSession, background_tasks: BackgroundTasks):
     try:
-        # Sample document data for demonstration
-        sample_data = DocumentData(
-            basics=Basics(
-                name="John Doe",
-                email="john.doe@example.com",
-                phone="(555) 123-4567",
-                location="San Francisco, CA",
-                summary=[
-                    "Experienced software engineer with 5+ years of expertise in full-stack development",
-                    "Proven track record of delivering scalable web applications using modern technologies",
-                    "Strong problem-solving skills and passion for writing clean, maintainable code"
-                ]
-            ),
-            experience=[
-                Experience(
-                    company="Tech Corp",
-                    location="San Francisco, CA",
-                    role="Senior Software Engineer",
-                    start_date="01/2021",
-                    end_date="Present",
-                    bullets=[
-                        "Led development of microservices architecture serving 1M+ daily active users",
-                        "Mentored junior developers and conducted code reviews to maintain high code quality",
-                        "Optimized database queries resulting in 40% reduction in response times"
-                    ]
-                ),
-                Experience(
-                    company="StartupXYZ",
-                    location="Remote",
-                    role="Full Stack Developer",
-                    start_date="06/2019",
-                    end_date="12/2020",
-                    bullets=[
-                        "Built RESTful APIs and React frontend for SaaS platform",
-                        "Implemented CI/CD pipelines reducing deployment time by 60%",
-                        "Collaborated with cross-functional teams to deliver features on tight deadlines"
-                    ]
-                )
-            ],
-            skills=["Python", "JavaScript", "React", "Node.js", "PostgreSQL", "Docker", "AWS", "Kubernetes", "GraphQL", "TypeScript"],
-            education=[
-                Education(
-                    institution="University of California, Berkeley",
-                    degree="Bachelor of Science in Computer Science",
-                    year="2019"
-                )
-            ]
-        )
-
-        # Render template with sample data
-        template = jinja_env.get_template("resume.html")
-        html_content = template.render(
-            basics=sample_data.basics,
-            experience=sample_data.experience,
-            skills=sample_data.skills,
-            education=sample_data.education
-        )
-
-        # Generate PDF with base_url to resolve CSS file
-        pdf_path = '/tmp/resume-generated.pdf'
-        base_url = str(template_dir)
-        HTML(string=html_content, base_url=base_url).write_pdf(pdf_path)
-        return FileResponse(path=pdf_path, filename='resume.pdf', media_type='application/pdf')
+        document_service = DocumentService(session)
+        session_state_service = SessionStateService(session)
+        session_state = await session_state_service.get_by_session_id(user_session.session.id)
+        if not session_state or not session_state.document_data: return None
+        document_data = DocumentData(**session_state.document_data)
+        file_name, pdf_path = await document_service.generate_document("default", document_data)
+        background_tasks.add_task(cleanup_temp_file, pdf_path)
+        return FileResponse(path=pdf_path, filename=file_name, media_type='application/pdf')
     except Exception as e:
         logging.error(f"Failed to generate PDF: {str(e)}")
         raise

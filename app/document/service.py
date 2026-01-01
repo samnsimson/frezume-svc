@@ -1,11 +1,15 @@
 import boto3
 import asyncio
 import aioboto3
+import tempfile
+import os
 from io import BytesIO
 from uuid import uuid4, UUID
 from datetime import datetime
+from pathlib import Path
+from jinja2 import Environment, FileSystemLoader
+from weasyprint import HTML
 from docling.document_converter import DocumentConverter
-from llama_cloud_services import ExtractionAgent
 from sqlmodel.ext.asyncio.session import AsyncSession
 from fastapi import UploadFile, HTTPException
 from app.config import settings
@@ -24,8 +28,6 @@ class DocumentService:
         self.secret_access_key = settings.aws_secret_access_key
         self.region = settings.aws_region
         self.bucket_name = settings.aws_s3_bucket
-        self.converter: DocumentConverter = AIClients.get_client('converter')
-        self.extractor: ExtractionAgent = AIClients.get_client('extractor')
         self.s3_client = self._create_s3_client()
 
     def _create_s3_client(self) -> boto3.client:
@@ -69,7 +71,8 @@ class DocumentService:
         return await loop.run_in_executor(None, self.parse_document, file)
 
     def parse_document(self, file: UploadFile) -> str:
-        try: return self.converter.convert(self._create_document_stream(file)).document.export_to_text()
+        converter: DocumentConverter = AIClients.get_client('converter')
+        try: return converter.convert(self._create_document_stream(file)).document.export_to_text()
         except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to parse document: {str(e)}")
 
     async def extract_document(self, file_content: str) -> DocumentData:
@@ -83,3 +86,14 @@ class DocumentService:
         deps = DocumentDependency(job_requirement=data.job_requirement, resume_content=data.resume_content)
         result = await document_rewrite_agent.run(user_prompt=data.input_message, deps=deps)
         return result.output
+
+    async def generate_document(self, template_name: str, data: DocumentData) -> tuple[str, str]:
+        template_dir = Path(__file__).parent.parent / "lib" / "templates"
+        jinja_env = Environment(loader=FileSystemLoader(str(template_dir)))
+        template = jinja_env.get_template(f"{template_name}/index.html")
+        file_name = f"{template_name}-{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
+        temp_dir = tempfile.gettempdir()
+        pdf_path = os.path.join(temp_dir, file_name)
+        html_content = template.render(basics=data.basics, experience=data.experience, skills=data.skills, education=data.education)
+        HTML(string=html_content, base_url=str(template_dir)).write_pdf(pdf_path)
+        return file_name, pdf_path
