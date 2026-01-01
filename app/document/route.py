@@ -1,6 +1,6 @@
 import logging
 from fastapi import APIRouter, File, UploadFile, BackgroundTasks
-from app.document.dto import DocumentData, DocumentDataOutput, ExtractDocumentRequest, RewriteDocumentRequest, UploadDocumentResult
+from app.document.dto import DocumentData, DocumentDataOutput, ExtractDocumentRequest, GenerateDocumentRequest, RewriteDocumentRequest, UploadDocumentResult
 from app.document.service import DocumentService
 from app.lib.annotations import AuthSession, TransactionSession
 from app.lib.annotations import UageGuard
@@ -59,14 +59,11 @@ async def rewrite_document(data: RewriteDocumentRequest, session: TransactionSes
         raise
 
 
-@router.get("/generate", operation_id="generateDocument")
-async def generate_document(session: TransactionSession, user_session: AuthSession, background_tasks: BackgroundTasks):
+@router.post("/generate", operation_id="generateDocument")
+async def generate_document(data: GenerateDocumentRequest, session: TransactionSession, background_tasks: BackgroundTasks):
     try:
         document_service = DocumentService(session)
-        session_state_service = SessionStateService(session)
-        session_state = await session_state_service.get_by_session_id(user_session.session.id)
-        if not session_state or not session_state.document_data: return None
-        file_name, pdf_path = await document_service.generate_document("default", session_state.document_data)
+        file_name, pdf_path = await document_service.generate_document(data.template_name, data.document_data)
         background_tasks.add_task(cleanup_temp_file, pdf_path)
         return FileResponse(path=pdf_path, filename=file_name, media_type='application/pdf')
     except Exception as e:

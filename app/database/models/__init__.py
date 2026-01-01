@@ -122,5 +122,7 @@ class SessionState(BaseSQLModel, table=True):
     session: "Session" = Relationship(back_populates="state")
 
     @field_serializer('document_data', when_used='json')
-    def serialize_document_data(self, v: dict | None) -> DocumentData | None:
-        return None if v is None else DocumentData(**v)
+    def serialize_document_data(self, v: dict | DocumentData | None) -> DocumentData | None:
+        if not v: return None
+        if isinstance(v, dict): return DocumentData(**v)
+        if isinstance(v, DocumentData): return v

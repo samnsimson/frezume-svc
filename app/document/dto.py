@@ -1,6 +1,5 @@
-from typing import List, Optional
+from typing import List, Optional, Literal
 from sqlmodel import Field
-from pydantic import field_serializer
 from app.lib.model import BaseModel
 
 
@@ -56,3 +55,8 @@ class RewriteDocumentRequest(BaseModel):
 
 class ExtractDocumentRequest(BaseModel):
     file_content: str = Field(description="File content in text format")
+
+
+class GenerateDocumentRequest(BaseModel):
+    template_name: Optional[Literal["default"]] = Field(default="default", description="Template name")
+    document_data: DocumentData = Field(description="Document data")
