@@ -19,3 +19,9 @@ class SessionStateRepository(Repository[SessionState]):
         if not session_state: raise ValueError(f"Session state with session id {session_id} not found")
         session_state.model_construct(**data.model_dump(exclude_unset=True))
         return await self.update(session_state.id, session_state)
+
+    async def delete_by_session_id(self, session_id: UUID) -> bool:
+        session_state = await self.get_by_session_id(session_id)
+        if not session_state: return False
+        await self.delete(session_state.id)
+        return True

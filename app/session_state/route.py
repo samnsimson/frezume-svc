@@ -21,3 +21,11 @@ async def save_session_state(session: TransactionSession, user_session: AuthSess
     session_state_dto = SessionStateDto(session_id=user_session.session.id, **data.model_dump())
     session_state = await session_state_service.create_or_update_session_state(session_state_dto)
     return session_state
+
+
+@router.delete("", operation_id="clearSessionState", response_model=bool)
+async def clear_session_state(session: TransactionSession, user_session: AuthSession):
+    session_state_service = SessionStateService(session)
+    result = await session_state_service.delete_by_session_id(user_session.session.id)
+    if not result: return False
+    return True

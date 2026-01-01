@@ -28,3 +28,6 @@ class SessionStateService:
 
     async def delete_session_state(self, session_id: UUID) -> None:
         await self.session_state_repository.delete(session_id)
+
+    async def delete_by_session_id(self, session_id: UUID) -> bool:
+        return await self.session_state_repository.delete_by_session_id(session_id)
