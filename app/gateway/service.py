@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.models import Session, User
 from app.document.dto import DocumentData, UploadDocumentResult
 from app.document.service import DocumentService
-from app.gateway.dto import EventStatus, ProcessInputDto, ProgressEvent
+from app.gateway.dto import EventStatus, ProcessInputDto, EventResponse
 from app.gateway.emitter import ProgressEmitter
 from app.session_state.dto import SessionStateDto
 from app.session_state.service import SessionStateService
@@ -39,7 +39,7 @@ class GatewayService:
             try:
                 message = await asyncio.wait_for(self.queue.get(), timeout=60.0)
                 if message is None: break
-                if isinstance(message, ProgressEvent): message_json = message.model_dump_json()
+                if isinstance(message, EventResponse): message_json = message.model_dump_json()
                 else: message_json = json.dumps(message)
                 yield f"data: {message_json}\n\n"
             except asyncio.TimeoutError:

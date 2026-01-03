@@ -13,7 +13,7 @@ class EventStatus(str, Enum):
     failed = 'failed'
 
 
-class ProgressEvent(BaseModel):
+class EventResponse(BaseModel):
     status: EventStatus = Field(description="Status of the progress event")
     data: Optional[dict] = Field(default=None, description="Optional data associated with the event")
 
