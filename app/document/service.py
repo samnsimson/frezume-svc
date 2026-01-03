@@ -67,6 +67,7 @@ class DocumentService:
         return DocumentStream(name=file.filename, stream=BytesIO(self._read_file_content(file)))
 
     async def parse_document_async(self, file: UploadFile) -> str:
+        print(type(file))
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, self.parse_document, file)
 
