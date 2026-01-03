@@ -1,10 +1,10 @@
 from enum import Enum
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from uuid import uuid4, UUID
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import DateTime, Field, Relationship, func, Column
 from datetime import datetime, timezone, timedelta
-from pydantic import field_serializer
+from pydantic import field_serializer, field_validator
 
 from app.document.dto import DocumentData
 from app.lib.model import BaseModel
@@ -117,12 +117,20 @@ class SessionState(BaseSQLModel, table=True):
     document_name: Optional[str] = Field(default=None, nullable=True)
     document_url: Optional[str] = Field(default=None, nullable=True)
     document_parsed: Optional[str] = Field(default=None, nullable=True)
-    document_data: Optional[DocumentData] = Field(sa_type=JSONB, default=None, nullable=True)
+    document_data: Optional[Dict[str, Any]] = Field(sa_type=JSONB, default=None, nullable=True)
     job_description: Optional[str] = Field(default=None, nullable=True)
     session: "Session" = Relationship(back_populates="state")
 
+    @classmethod
+    @field_validator('document_data', mode='before')
+    def validate_document_data(cls, v: dict | DocumentData | None) -> Dict[str, Any] | None:
+        """Convert DocumentData to dict when saving to database, or keep dict as-is"""
+        if not v: return None
+        if isinstance(v, DocumentData): return v.model_dump()
+        if isinstance(v, dict): return v
+
     @field_serializer('document_data', when_used='json')
-    def serialize_document_data(self, v: dict | DocumentData | None) -> DocumentData | None:
+    def serialize_document_data(self, v: Dict[str, Any] | None) -> DocumentData | None:
+        """Convert dict to DocumentData for JSON serialization in API responses"""
         if not v: return None
         if isinstance(v, dict): return DocumentData(**v)
-        if isinstance(v, DocumentData): return v
