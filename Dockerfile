@@ -26,10 +26,23 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy requirements and install
-COPY requirements.txt .
-RUN pip install --upgrade pip setuptools wheel
-RUN pip install -r requirements.txt
+# Install uv
+RUN pip install --no-cache-dir uv
 
+# Copy dependency files
+COPY pyproject.toml ./
+COPY uv.lock* ./
+
+# Install Python dependencies using uv
+RUN uv sync --frozen --no-dev
+
+# Copy application code
 COPY . .
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# Set environment variables
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+# Run the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
