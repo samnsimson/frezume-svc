@@ -15,10 +15,12 @@ RUN apt-get update && apt-get install -y \
     # Fonts
     fonts-dejavu-core \
     fonts-liberation \
-    fonts-noto-cjk \
+    # OpenGL fix ONLY
+    libgl1-mesa-glx \
+    libglib2.0-0 \
     # Utilities
     curl \
-    # COMPILATION DEPENDENCIES (CRITICAL)
+    # COMPILATION DEPENDENCIES
     build-essential \
     libyaml-dev \
     python3-dev \
@@ -35,6 +37,9 @@ COPY uv.lock* ./
 
 # Install Python dependencies using uv
 RUN uv sync --frozen --no-dev
+
+# Install ONLY opencv-python-headless
+RUN uv pip install opencv-python-headless
 
 # Copy application code
 COPY . .
