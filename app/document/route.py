@@ -4,6 +4,7 @@ from app.document.dto import DocumentData, DocumentDataOutput, ExtractDocumentRe
 from app.document.service import DocumentService
 from app.lib.annotations import AuthSession, TransactionSession
 from app.lib.annotations import UageGuard
+from app.lib.responses import PDF_RESPONSE_200
 from app.usage.service import UsageService
 from app.session_state.service import SessionStateService
 from app.session_state.dto import SessionStateDto
@@ -59,7 +60,7 @@ async def rewrite_document(data: RewriteDocumentRequest, session: TransactionSes
         raise
 
 
-@router.post("/generate", operation_id="generateDocument")
+@router.post("/generate", operation_id="generateDocument", responses={200: PDF_RESPONSE_200})
 async def generate_document(data: GenerateDocumentRequest, session: TransactionSession, background_tasks: BackgroundTasks):
     try:
         document_service = DocumentService(session)

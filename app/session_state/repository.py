@@ -1,10 +1,8 @@
 from uuid import UUID
-from typing import Any
 from sqlmodel import select
 from app.database.models import SessionState
 from app.database.repository import Repository
 from sqlmodel.ext.asyncio.session import AsyncSession
-from app.document.dto import DocumentData
 
 
 class SessionStateRepository(Repository[SessionState]):
