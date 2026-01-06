@@ -15,8 +15,8 @@ RUN apt-get update && apt-get install -y \
     # Fonts
     fonts-dejavu-core \
     fonts-liberation \
-    # OpenGL fix ONLY
-    libgl1-mesa-glx \
+    # OpenGL
+    libgl1 \
     libglib2.0-0 \
     # Utilities
     curl \
