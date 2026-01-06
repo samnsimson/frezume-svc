@@ -22,12 +22,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Resumevx AI SVC", description="AI Services for Resumevx", root_path="/api", lifespan=lifespan)
 
-allowed_origins = [
-    "http://localhost:3000",
-    "https://*.railway.app",
-]
 
-app.add_middleware(CORSMiddleware, allow_origins=allowed_origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware,
+                   allow_origins=["http://localhost:3000"],
+                   allow_origin_regex=r"https://.*\.railway\.app",
+                   allow_credentials=True,
+                   allow_methods=["*"],
+                   allow_headers=["*"])
 app.add_middleware(AuthMiddleware)
 
 app.include_router(auth_router, prefix="/auth")
