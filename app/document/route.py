@@ -28,7 +28,7 @@ async def upload_document(session: TransactionSession, user_session: AuthSession
 async def parse_document(session: TransactionSession, user_session: AuthSession, file: UploadFile = File(...)):
     document_service = DocumentService(session)
     session_state_service = SessionStateService(session)
-    result = await document_service.parse_document_async(file)
+    result = await document_service.parse_document(file)
     session_state_dto = SessionStateDto(session_id=user_session.session.id, document_parsed=result)
     await session_state_service.create_or_update_session_state(session_state_dto)
     return result

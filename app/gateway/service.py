@@ -68,7 +68,7 @@ class GatewayService:
     async def parse(self, file: UploadFile):
         await file.seek(0)
         await self.emitter.emit(EventStatus.parsing)
-        return await self.document_service.parse_document_async(file)
+        return await self.document_service.parse_document(file)
 
     async def extract(self, parsed_content: str):
         await self.emitter.emit(EventStatus.extracting)

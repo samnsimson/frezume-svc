@@ -70,7 +70,7 @@ class DocumentService:
         try: return self.s3_client.get_object(Bucket=self.bucket_name, Key=file_key)['Body'].read()
         except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to download document: {str(e)}")
 
-    async def parse_document_async(self, file: UploadFile) -> str:
+    async def parse_document(self, file: UploadFile) -> str:
         try:
             await file.seek(0)
             file_content = await file.read()
