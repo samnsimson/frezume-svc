@@ -1,6 +1,4 @@
 from typing import Literal
-from docling.datamodel.base_models import InputFormat
-from docling.document_converter import DocumentConverter
 from llama_cloud import ExtractConfig, ExtractMode
 from llama_cloud_services import ExtractionAgent, LlamaExtract
 from app.config import settings
@@ -18,6 +16,5 @@ def get_llama_extract_client() -> ExtractionAgent:
 
 class AIClients:
     @staticmethod
-    def get_client(client_name: Literal['converter', 'extractor']) -> DocumentConverter | ExtractionAgent:
-        if client_name == 'converter': return DocumentConverter()
+    def get_client(client_name: Literal['extractor']) -> ExtractionAgent:
         if client_name == 'extractor': return get_llama_extract_client()

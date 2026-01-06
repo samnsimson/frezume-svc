@@ -1,15 +1,12 @@
+import os
 import boto3
-import asyncio
 import aioboto3
 import tempfile
-import os
-from io import BytesIO
 from uuid import uuid4, UUID
 from datetime import datetime
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
-from docling.document_converter import DocumentConverter
 from sqlmodel.ext.asyncio.session import AsyncSession
 from fastapi import UploadFile, HTTPException
 from app.config import settings
@@ -17,8 +14,7 @@ from app.document.dto import DocumentData, DocumentDataOutput, RewriteDocumentRe
 from app.agent.dto import DocumentDependency
 from app.agent.document_rewrite_agent import document_rewrite_agent
 from app.agent.document_extract_agent import document_extract_agent
-from docling.datamodel.base_models import DocumentStream
-from app.lib.ai_clients import AIClients
+from app.lib.http_client import HttpClient
 
 
 class DocumentService:
@@ -29,6 +25,7 @@ class DocumentService:
         self.region = settings.aws_region
         self.bucket_name = settings.aws_s3_bucket
         self.s3_client = self._create_s3_client()
+        self.docling_client = HttpClient(base_url=settings.docling_url, timeout=300.0)
 
     def _create_s3_client(self) -> boto3.client:
         return boto3.client('s3', aws_access_key_id=self.access_key_id, aws_secret_access_key=self.secret_access_key, region_name=self.region)
@@ -73,17 +70,21 @@ class DocumentService:
         try: return self.s3_client.get_object(Bucket=self.bucket_name, Key=file_key)['Body'].read()
         except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to download document: {str(e)}")
 
-    def _create_document_stream(self, file: UploadFile) -> DocumentStream:
-        return DocumentStream(name=file.filename, stream=BytesIO(self._read_file_content(file)))
-
     async def parse_document_async(self, file: UploadFile) -> str:
-        print(type(file))
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, self.parse_document, file)
-
-    def parse_document(self, file: UploadFile) -> str:
-        converter: DocumentConverter = AIClients.get_client('converter')
-        try: return converter.convert(self._create_document_stream(file)).document.export_to_text()
+        try:
+            await file.seek(0)
+            file_content = await file.read()
+            await file.seek(0)
+            files = {"files": (file.filename, file_content, file.content_type or "application/octet-stream")}
+            response = await self.docling_client.post("/v1/convert/file", files=files, data={"to_formats": ["text"]})
+            response.raise_for_status()
+            result = response.json()
+            if "document" in result and result["document"]:
+                document = result["document"]
+                if text_content := document.get("text_content"): return text_content
+                if md_content := document.get("md_content"): return md_content
+                raise HTTPException(status_code=500, detail="Document conversion succeeded but no text or markdown content was returned")
+        except HTTPException: raise
         except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to parse document: {str(e)}")
 
     async def extract_document(self, file_content: str) -> DocumentData:
