@@ -114,10 +114,14 @@ class Usage(BaseSQLModel, table=True):
 class SessionState(BaseSQLModel, table=True):
     __tablename__ = "session_state"
     session_id: UUID = Field(foreign_key="session.id", ondelete="CASCADE")
+    template_name: Optional[str] = Field(default=None, nullable=True)
     document_name: Optional[str] = Field(default=None, nullable=True)
     document_url: Optional[str] = Field(default=None, nullable=True)
     document_parsed: Optional[str] = Field(default=None, nullable=True)
     document_data: Optional[Dict[str, Any]] = Field(sa_type=JSONB, default=None, nullable=True)
+    generated_document_name: Optional[str] = Field(default=None, nullable=True)
+    genereated_document_url: Optional[str] = Field(default=None, nullable=True)
+    generated_document_data: Optional[Dict[str, Any]] = Field(sa_type=JSONB, default=None, nullable=True)
     job_description: Optional[str] = Field(default=None, nullable=True)
     session: "Session" = Relationship(back_populates="state")
 
@@ -131,6 +135,20 @@ class SessionState(BaseSQLModel, table=True):
 
     @field_serializer('document_data', when_used='json')
     def serialize_document_data(self, v: Dict[str, Any] | None) -> DocumentData | None:
+        """Convert dict to DocumentData for JSON serialization in API responses"""
+        if not v: return None
+        if isinstance(v, dict): return DocumentData(**v)
+
+    @classmethod
+    @field_validator('generated_document_data', mode='before')
+    def validate_generated_document_data(cls, v: dict | DocumentData | None) -> Dict[str, Any] | None:
+        """Convert DocumentData to dict when saving to database, or keep dict as-is"""
+        if not v: return None
+        if isinstance(v, DocumentData): return v.model_dump()
+        if isinstance(v, dict): return v
+
+    @field_serializer('generated_document_data', when_used='json')
+    def serialize_generated_document_data(self, v: Dict[str, Any] | None) -> DocumentData | None:
         """Convert dict to DocumentData for JSON serialization in API responses"""
         if not v: return None
         if isinstance(v, dict): return DocumentData(**v)

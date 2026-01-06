@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     postmark_server_token: Optional[str] = Field(default=None, env="POSTMARK_SERVER_TOKEN")
     stripe_secret_key: Optional[str] = Field(default=None, env="STRIPE_SECRET_KEY")
     stripe_webhook_secret: Optional[str] = Field(default=None, env="STRIPE_WEBHOOK_SECRET")
+    docling_url: Optional[str] = Field(default=None, env="DOCLING_URL")
 
     class Config:
         env_file = ".env"

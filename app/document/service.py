@@ -51,12 +51,22 @@ class DocumentService:
     def _read_file_content(self, file: UploadFile) -> bytes:
         return file.file.read()
 
-    async def upload_document(self, file: UploadFile, user_id: UUID) -> UploadDocumentResult:
+    async def upload_document(self, file: UploadFile, user_id: UUID, bucket_name: str | None = None) -> UploadDocumentResult:
         boto_session = aioboto3.Session()
+        bucket_name = bucket_name or self.bucket_name
         async with boto_session.client('s3') as s3_client:
             file_content = self._read_file_content(file)
             file_key, file_url = self._generate_file_key_and_url(file.filename, user_id)
-            await s3_client.put_object(Bucket=self.bucket_name, Key=file_key, Body=file_content, ContentType=file.content_type)
+            await s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=file_content, ContentType=file.content_type)
+            return UploadDocumentResult(file_key=file_key, file_url=file_url, filename=file.filename, file_size=file.size, file_storage_name=file_key.split('/')[-1], content_type=file.content_type)
+
+    async def save_document(self, file: UploadFile, user_id: UUID, bucket_name: str | None = None) -> UploadDocumentResult:
+        boto_session = aioboto3.Session()
+        bucket_name = bucket_name or self.bucket_name
+        async with boto_session.client('s3') as s3_client:
+            file_content = self._read_file_content(file)
+            file_key, file_url = self._generate_file_key_and_url(file.filename, user_id)
+            await s3_client.put_object(Bucket=bucket_name, Key=file_key, Body=file_content, ContentType=file.content_type)
             return UploadDocumentResult(file_key=file_key, file_url=file_url, filename=file.filename, file_size=file.size, file_storage_name=file_key.split('/')[-1], content_type=file.content_type)
 
     def download_document(self, file_key: str) -> bytes:

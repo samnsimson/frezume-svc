@@ -51,7 +51,8 @@ async def rewrite_document(data: RewriteDocumentRequest, session: TransactionSes
         usage_service = UsageService(session)
         session_state_service = SessionStateService(session)
         response = await document_service.rewrite_document(data)
-        session_state_dto = SessionStateDto(session_id=user_session.session.id, document_data=response.data)
+        session_id = user_session.session.id
+        session_state_dto = SessionStateDto(session_id=session_id, document_data=response.data, generated_document_data=response.data)
         await usage_service.increment_rewrites(user_session.user.id)
         await session_state_service.create_or_update_session_state(session_state_dto)
         return response
@@ -70,3 +71,18 @@ async def generate_document(data: GenerateDocumentRequest, session: TransactionS
     except Exception as e:
         logging.error(f"Failed to generate PDF: {str(e)}")
         raise
+
+
+@router.post("/save", operation_id="saveDocument")
+async def save_document(session: TransactionSession, user_session: AuthSession, file: UploadFile = File(...)):
+    document_service = DocumentService(session)
+    session_state_service = SessionStateService(session)
+    result = await document_service.save_document(file, user_session.user.id)
+    await session_state_service.create_or_update_session_state(SessionStateDto(
+        session_id=user_session.session.id,
+        document_name=result.filename,
+        document_url=result.file_url,
+        generated_document_name=result.filename,
+        generated_document_url=result.file_url
+    ))
+    return result
