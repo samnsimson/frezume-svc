@@ -20,6 +20,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if request.method == "OPTIONS": return await call_next(request)
         if self.should_skip_path(request.url.path): return await call_next(request)
         token, from_cookie = self.extract_token(request)
+        print(f"token: {token}")
         if not token: return self.create_unauthorized_response(clear_cookie=from_cookie)
         async with Database.async_session() as db_session:
             user_data, session_data, error = await self.authenticate_user(token, db_session)
