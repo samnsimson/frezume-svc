@@ -23,7 +23,7 @@ async def login(dto: LoginDto, response: Response, session: TransactionSession):
     jwt_token = auth_service.create_jwt_token(result.user, result.session)
     expires_at = result.session.expires_at
     max_age = int((expires_at - datetime.now(timezone.utc)).total_seconds())
-    response.set_cookie(key="resumevx:auth", value=jwt_token, httponly=True, secure=True, samesite="lax", max_age=max_age)
+    response.set_cookie(key="resumevx:auth", value=jwt_token, httponly=True, secure=True, samesite="none", max_age=max_age)
     return result
 
 
