@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from app.config import settings
 from fastapi.middleware.cors import CORSMiddleware
 from app.middleware.auth_middleware import AuthMiddleware
+from app.middleware.logging_middleware import LoggingMiddleware
 from contextlib import asynccontextmanager
 from app.database import Database
 from app.error_handler import setup_error_handlers
@@ -23,12 +24,14 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Resumevx AI SVC", description="AI Services for Resumevx", lifespan=lifespan)
 
 
-app.add_middleware(CORSMiddleware,
-                   allow_origins=["http://localhost:3000", "https://frezume.com", "https://www.frezume.com"],
-                   allow_origin_regex=r"https://.*\.frezume\.com",
-                   allow_credentials=True,
-                   allow_methods=["*"],
-                   allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "https://frezume.com", "https://www.frezume.com"],
+    allow_origin_regex=r"https://.*\.frezume\.com",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"])
+app.add_middleware(LoggingMiddleware)
 app.add_middleware(AuthMiddleware)
 
 app.include_router(auth_router, prefix="/auth")
