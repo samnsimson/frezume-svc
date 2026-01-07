@@ -20,5 +20,5 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             "status": response.status_code,
             "duration": (datetime.now(timezone.utc) - start_time).total_seconds()
         }
-        self.logger.info(f"[ANALYTICS] {log_data}")
+        self.logger.info(log_data)
         return response
