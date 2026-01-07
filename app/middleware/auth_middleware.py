@@ -7,6 +7,7 @@ from app.auth.service import AuthService
 from app.session.service import SessionService
 from app.user.service import UserService
 from typing import Set, Pattern
+from app.config import settings
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -39,7 +40,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
     def extract_token(self, request: Request) -> tuple[str | None, bool]:
         """Extracts the token from the request"""
-        cookie_token = request.cookies.get("resumevx:auth")
+        cookie_token = request.cookies.get(settings.cookie_key)
         auth_header = request.headers.get("Authorization")
         if cookie_token: return cookie_token, True
         if auth_header and auth_header.startswith("Bearer "): return auth_header.replace("Bearer ", ""), False
@@ -48,7 +49,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
     def create_unauthorized_response(self, detail: str = "Unauthorized", status_code: int = 401, clear_cookie: bool = False) -> JSONResponse:
         """Creates a JSON response for unauthorized requests"""
         response = JSONResponse(status_code=status_code, content={"detail": detail})
-        if clear_cookie: response.delete_cookie(key="resumevx:auth")
+        if clear_cookie: response.delete_cookie(key=settings.cookie_key)
         return response
 
     async def authenticate_user(self, token: str, db_session) -> tuple:

@@ -63,7 +63,7 @@ class AuthService:
         return JwtPayload(user=User.model_validate(decoded["user"]), session=SessionModel.model_validate(decoded["session"]), iat=decoded["iat"], exp=decoded["exp"])
 
     def get_session_from_request(self, request: Request) -> UserSession | None:
-        cookie_token = request.cookies.get('resumevx:auth')
+        cookie_token = request.cookies.get(settings.cookie_key)
         if not cookie_token: return None
         payload = self.verify_jwt_token(cookie_token)
         return UserSession(user=payload.user, session=payload.session)
