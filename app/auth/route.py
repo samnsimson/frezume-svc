@@ -8,6 +8,11 @@ from app.auth.dto import DeleteAccountResponse, LoginDto, LoginResponseDto, Sign
 from app.auth.service import AuthService
 from app.auth.task import send_verification_email
 from app.lib.annotations import AuthSession, TransactionSession
+from app.lib.constants import (
+    ERROR_FAILED_TO_SIGN_OUT,
+    SUCCESS_SIGNED_OUT,
+    SUCCESS_ACCOUNT_DELETED,
+)
 from app.session.service import SessionService
 from app.stripe.service import StripeService
 from app.subscription.dto import CreateSubscriptionDto
@@ -52,9 +57,9 @@ async def sign_out(response: Response, session: TransactionSession, request: Req
     session_service = SessionService(session)
     user_session = auth_service.get_session_from_request(request)
     result = await session_service.delete_session_by_token(user_session.session.session_token)
-    if not result: raise HTTPException(status_code=401, detail="Failed to sign out")
+    if not result: raise HTTPException(status_code=401, detail=ERROR_FAILED_TO_SIGN_OUT)
     response.delete_cookie(key=settings.cookie_key)
-    return {"message": "Signed out successfully"}
+    return {"message": SUCCESS_SIGNED_OUT}
 
 
 @router.get("/get-session", operation_id="getSession", response_model=UserSession)
@@ -71,4 +76,4 @@ async def delete_account(session: TransactionSession, user_session: AuthSession)
     if subscription and subscription.stripe_subscription_id:
         await stripe_service.cancel_stripe_subscription(subscription.stripe_subscription_id, cancel_immediately=True)
     await auth_service.delete_account(user_session.user.id)
-    return DeleteAccountResponse(status="success", message="Account deleted successfully")
+    return DeleteAccountResponse(status="success", message=SUCCESS_ACCOUNT_DELETED)

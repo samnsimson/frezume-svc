@@ -2,6 +2,10 @@ from fastapi import Request, HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.config import settings
 from app.subscription.service import SubscriptionService
+from app.lib.constants import (
+    ERROR_INVALID_PAYLOAD,
+    ERROR_INVALID_SIGNATURE,
+)
 from uuid import UUID
 import stripe
 
@@ -12,8 +16,8 @@ async def handle_stripe_webhook(request: Request, session: AsyncSession):
     sig_header = request.headers.get("stripe-signature")
 
     try: event = stripe.Webhook.construct_event(payload, sig_header, settings.stripe_webhook_secret)
-    except ValueError: raise HTTPException(status_code=400, detail="Invalid payload")
-    except stripe.error.SignatureVerificationError: raise HTTPException(status_code=400, detail="Invalid signature")
+    except ValueError: raise HTTPException(status_code=400, detail=ERROR_INVALID_PAYLOAD)
+    except stripe.error.SignatureVerificationError: raise HTTPException(status_code=400, detail=ERROR_INVALID_SIGNATURE)
 
     subscription_service = SubscriptionService(session)
     event_type = event["type"]

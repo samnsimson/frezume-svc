@@ -4,6 +4,32 @@ from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from botocore.exceptions import ClientError
 from pydantic_ai.exceptions import ModelHTTPError, AgentRunError
+from app.lib.constants import (
+    ERROR_DATABASE_CONSTRAINT_VIOLATION,
+    ERROR_USERNAME_ALREADY_EXISTS,
+    ERROR_EMAIL_ALREADY_EXISTS,
+    ERROR_RECORD_ALREADY_EXISTS,
+    ERROR_REFERENCED_RECORD_NOT_EXISTS,
+    ERROR_REQUIRED_FIELD_MISSING,
+    ERROR_DATABASE_ERROR,
+    ERROR_UNKNOWN_ERROR,
+    ERROR_RESOURCE_NOT_FOUND,
+    ERROR_ACCESS_DENIED,
+    ERROR_SERVICE_UNAVAILABLE,
+    ERROR_VALIDATION_ERROR,
+    ERROR_MODEL_RESPONSE_TRUNCATED,
+    ERROR_AI_MODEL_SERVICE_ERROR,
+    ERROR_FAILED_TO_PROCESS_AI_AGENT,
+    ERROR_UNEXPECTED_ERROR,
+    ERROR_TYPE_INTEGRITY_ERROR,
+    ERROR_TYPE_VALUE_ERROR,
+    ERROR_TYPE_DATABASE_ERROR,
+    ERROR_TYPE_SERVICE_ERROR,
+    ERROR_TYPE_VALIDATION_ERROR,
+    ERROR_TYPE_MODEL_SERVICE_ERROR,
+    ERROR_TYPE_AGENT_ERROR,
+    ERROR_TYPE_INTERNAL_SERVER_ERROR,
+)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -18,15 +44,15 @@ def setup_error_handlers(app: FastAPI):
         if hasattr(exc, 'orig') and exc.orig is not None: error_message = str(exc.orig)
         else: error_message = str(exc)
         error_lower = error_message.lower()
-        detail = "A database constraint violation occurred"
+        detail = ERROR_DATABASE_CONSTRAINT_VIOLATION
         if "uniqueviolation" in error_lower or "duplicate key" in error_lower or "unique constraint" in error_lower:
-            if "ix_user_username" in error_message: detail = "Username already exists"
-            elif "ix_user_email" in error_message: detail = "Email already exists"
-            else: detail = "A record with this information already exists"
-        elif "foreign key" in error_lower: detail = "Referenced record does not exist"
-        elif "not null" in error_lower: detail = "Required field is missing"
+            if "ix_user_username" in error_message: detail = ERROR_USERNAME_ALREADY_EXISTS
+            elif "ix_user_email" in error_message: detail = ERROR_EMAIL_ALREADY_EXISTS
+            else: detail = ERROR_RECORD_ALREADY_EXISTS
+        elif "foreign key" in error_lower: detail = ERROR_REFERENCED_RECORD_NOT_EXISTS
+        elif "not null" in error_lower: detail = ERROR_REQUIRED_FIELD_MISSING
         logger.error(f"IntegrityError: {error_message} - Path: {request.url.path}")
-        return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": detail, "type": "IntegrityError"})
+        return JSONResponse(status_code=status.HTTP_409_CONFLICT, content={"detail": detail, "type": ERROR_TYPE_INTEGRITY_ERROR})
 
     @app.exception_handler(ValueError)
     async def value_error_handler(request: Request, exc: ValueError):
@@ -44,25 +70,25 @@ def setup_error_handlers(app: FastAPI):
         """Handle general SQLAlchemy database errors (but not IntegrityError, which is handled separately)."""
         error_message = str(exc)
         logger.error(f"SQLAlchemyError: {error_message} - Path: {request.url.path}")
-        content = {"detail": "A database error occurred", "type": "DatabaseError"}
+        content = {"detail": ERROR_DATABASE_ERROR, "type": ERROR_TYPE_DATABASE_ERROR}
         return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content=content)
 
     @app.exception_handler(ClientError)
     async def client_error_handler(request: Request, exc: ClientError):
         """Handle AWS/boto3 client errors."""
-        error_code = exc.response.get("Error", {}).get("Code", "UnknownError") if hasattr(exc, 'response') else "UnknownError"
+        error_code = exc.response.get("Error", {}).get("Code", ERROR_UNKNOWN_ERROR) if hasattr(exc, 'response') else ERROR_UNKNOWN_ERROR
         error_message = exc.response.get("Error", {}).get("Message", str(exc)) if hasattr(exc, 'response') else str(exc)
         if error_code == "NoSuchKey" or error_code == "404":
             status_code = status.HTTP_404_NOT_FOUND
-            detail = "The requested resource was not found"
+            detail = ERROR_RESOURCE_NOT_FOUND
         elif error_code == "AccessDenied" or error_code == "403":
             status_code = status.HTTP_403_FORBIDDEN
-            detail = "Access denied to the requested resource"
+            detail = ERROR_ACCESS_DENIED
         else:
             status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-            detail = "External service is temporarily unavailable"
+            detail = ERROR_SERVICE_UNAVAILABLE
         logger.error(f"ClientError ({error_code}): {error_message} - Path: {request.url.path}")
-        return JSONResponse(status_code=status_code, content={"detail": detail, "type": "ServiceError", "service": "AWS"})
+        return JSONResponse(status_code=status_code, content={"detail": detail, "type": ERROR_TYPE_SERVICE_ERROR, "service": "AWS"})
 
     @app.exception_handler(RequestValidationError)
     async def validation_error_handler(request: Request, exc: RequestValidationError):
@@ -76,7 +102,7 @@ def setup_error_handlers(app: FastAPI):
         logger.error(f"ValidationError: {error_messages} - Path: {request.url.path}")
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            content={"detail": "Validation error", "errors": error_messages, "type": "ValidationError"}
+            content={"detail": ERROR_VALIDATION_ERROR, "errors": error_messages, "type": ERROR_TYPE_VALIDATION_ERROR}
         )
 
     @app.exception_handler(ModelHTTPError)
@@ -85,9 +111,9 @@ def setup_error_handlers(app: FastAPI):
         error_detail = str(exc)
         logger.error(f"ModelHTTPError: {error_detail} - Path: {request.url.path}")
         if "Invalid JSON" in error_detail or "EOF" in error_detail:
-            detail = "The AI model response was truncated or invalid. The resume content may be too large. Please try with a shorter resume or contact support."
-        else: detail = f"AI model service error: {error_detail}"
-        return JSONResponse(status_code=status.HTTP_502_BAD_GATEWAY, content={"detail": detail, "type": "ModelServiceError", "service": "AI"})
+            detail = ERROR_MODEL_RESPONSE_TRUNCATED
+        else: detail = ERROR_AI_MODEL_SERVICE_ERROR.format(error_detail=error_detail)
+        return JSONResponse(status_code=status.HTTP_502_BAD_GATEWAY, content={"detail": detail, "type": ERROR_TYPE_MODEL_SERVICE_ERROR, "service": "AI"})
 
     @app.exception_handler(AgentRunError)
     async def agent_run_error_handler(request: Request, exc: AgentRunError):
@@ -96,7 +122,7 @@ def setup_error_handlers(app: FastAPI):
         logger.error(f"AgentRunError: {error_message} - Path: {request.url.path}")
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"detail": f"Failed to process AI agent request: {error_message}", "type": "AgentError"}
+            content={"detail": ERROR_FAILED_TO_PROCESS_AI_AGENT.format(error_message=error_message), "type": ERROR_TYPE_AGENT_ERROR}
         )
 
     @app.exception_handler(Exception)
@@ -107,5 +133,5 @@ def setup_error_handlers(app: FastAPI):
         logger.exception(f"Unhandled {error_type}: {error_message} - Path: {request.url.path}")
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"detail": "An unexpected error occurred", "type": "InternalServerError"}
+            content={"detail": ERROR_UNEXPECTED_ERROR, "type": ERROR_TYPE_INTERNAL_SERVER_ERROR}
         )

@@ -8,6 +8,15 @@ from app.account.service import AccountService
 from app.auth.dto import JwtPayload, LoginDto, LoginResponseDto, SignupDto, UserSession
 from app.config import settings
 from app.database.models import User, Session as SessionModel
+from app.lib.constants import (
+    ERROR_USER_NOT_FOUND,
+    ERROR_USER_HAS_NO_ACCOUNT,
+    ERROR_EMAIL_NOT_VERIFIED,
+    ERROR_INVALID_CREDENTIALS,
+    ERROR_USERNAME_OR_EMAIL_EXISTS,
+    ERROR_TOKEN_EXPIRED,
+    ERROR_INVALID_TOKEN,
+)
 from app.user.dto import CreateUserDto
 from app.user.service import UserService
 from app.session.service import SessionService
@@ -27,21 +36,21 @@ class AuthService:
         return self._hash_password(password) == hashed_password
 
     def _validate_user_for_signin(self, user: User) -> None:
-        if not user: raise HTTPException(status_code=401, detail="User not found")
-        if not user.account: raise HTTPException(status_code=401, detail="User has no account")
-        if not user.email_verified: raise HTTPException(status_code=401, detail="Email not verified")
+        if not user: raise HTTPException(status_code=401, detail=ERROR_USER_NOT_FOUND)
+        if not user.account: raise HTTPException(status_code=401, detail=ERROR_USER_HAS_NO_ACCOUNT)
+        if not user.email_verified: raise HTTPException(status_code=401, detail=ERROR_EMAIL_NOT_VERIFIED)
 
     async def signin(self, dto: LoginDto) -> LoginResponseDto:
         user = await self.user_service.get_by_username_or_email(dto.username)
         self._validate_user_for_signin(user)
-        if not self._verify_password(dto.password, user.account.password): raise HTTPException(status_code=401, detail="Invalid credentials")
+        if not self._verify_password(dto.password, user.account.password): raise HTTPException(status_code=401, detail=ERROR_INVALID_CREDENTIALS)
         session = await self.session_service.create_session(user.id)
         return LoginResponseDto(user=user, session=session)
 
     async def signup(self, dto: SignupDto) -> User:
         try:
             await self.user_service.get_by_username_or_email(dto.username)
-            raise HTTPException(status_code=400, detail="Username or email already exists")
+            raise HTTPException(status_code=400, detail=ERROR_USERNAME_OR_EMAIL_EXISTS)
         except ValueError:
             return await self.user_service.create_user(CreateUserDto(name=dto.name, username=dto.username, email=dto.email), commit=False)
 
@@ -55,8 +64,8 @@ class AuthService:
 
     def _decode_token(self, token: str) -> dict:
         try: return jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
-        except jwt.ExpiredSignatureError: raise HTTPException(status_code=401, detail="Token expired")
-        except jwt.InvalidTokenError: raise HTTPException(status_code=401, detail="Invalid token")
+        except jwt.ExpiredSignatureError: raise HTTPException(status_code=401, detail=ERROR_TOKEN_EXPIRED)
+        except jwt.InvalidTokenError: raise HTTPException(status_code=401, detail=ERROR_INVALID_TOKEN)
 
     def verify_jwt_token(self, token: str) -> JwtPayload:
         decoded = self._decode_token(token)

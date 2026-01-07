@@ -6,6 +6,16 @@ from app.database.models import Subscription, User
 from app.subscription.dto import CreateSubscriptionDto, UpdateSubscriptionDto
 from app.subscription.repository import SubscriptionRepository
 from app.stripe.service import StripeService
+from app.lib.constants import (
+    ERROR_SUBSCRIPTION_NOT_FOUND,
+    ERROR_SUBSCRIPTION_NO_STRIPE_CUSTOMER,
+    ERROR_FAILED_TO_CANCEL_SUBSCRIPTION,
+    ERROR_FAILED_TO_UPDATE_SUBSCRIPTION,
+    ERROR_FAILED_TO_LINK_STRIPE_SUBSCRIPTION,
+    ERROR_FAILED_TO_SYNC_SUBSCRIPTION,
+    ERROR_FAILED_TO_CREATE_CHECKOUT_SESSION,
+    ERROR_FAILED_TO_CREATE_PORTAL_SESSION,
+)
 
 
 class SubscriptionService:
@@ -36,7 +46,7 @@ class SubscriptionService:
             subscription.status = stripe_sub['status']
             subscription.canceled_at = datetime.now(timezone.utc)
             return await self._save_subscription(subscription)
-        except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to cancel subscription: {str(e)}")
+        except Exception as e: raise HTTPException(status_code=500, detail=ERROR_FAILED_TO_CANCEL_SUBSCRIPTION.format(error=str(e)))
 
     async def update_subscription_plan(self, user_id: UUID, price_id: str) -> Subscription:
         try:
@@ -47,7 +57,7 @@ class SubscriptionService:
             subscription.stripe_price_id = price_id
             self._update_periods(subscription, stripe_sub)
             return await self._save_subscription(subscription)
-        except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to update subscription: {str(e)}")
+        except Exception as e: raise HTTPException(status_code=500, detail=ERROR_FAILED_TO_UPDATE_SUBSCRIPTION.format(error=str(e)))
 
     async def link_stripe_subscription(self, user_id: UUID, stripe_subscription_id: str) -> Subscription:
         try:
@@ -60,40 +70,40 @@ class SubscriptionService:
             subscription.plan = plan
             self._update_from_stripe(subscription, stripe_sub)
             return await self._save_subscription(subscription)
-        except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to link Stripe subscription: {str(e)}")
+        except Exception as e: raise HTTPException(status_code=500, detail=ERROR_FAILED_TO_LINK_STRIPE_SUBSCRIPTION.format(error=str(e)))
 
     async def sync_from_stripe(self, stripe_subscription_id: str) -> Subscription:
         try:
             subscription = await self.subscription_repository.get_by_stripe_subscription_id(stripe_subscription_id)
-            if not subscription: raise HTTPException(status_code=404, detail="Subscription not found")
+            if not subscription: raise HTTPException(status_code=404, detail=ERROR_SUBSCRIPTION_NOT_FOUND)
             stripe_sub = await self.stripe_service.retrieve_stripe_subscription(stripe_subscription_id)
             self._update_from_stripe(subscription, stripe_sub)
             return await self._save_subscription(subscription)
-        except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to sync subscription: {str(e)}")
+        except Exception as e: raise HTTPException(status_code=500, detail=ERROR_FAILED_TO_SYNC_SUBSCRIPTION.format(error=str(e)))
 
     async def create_checkout_session(self, user: User, price_id: str, success_url: str, cancel_url: str) -> str:
         try:
             subscription = await self.get_by_user_id(user.id)
             customer_id = await self._get_or_create_customer(user, subscription)
             return await self.stripe_service.create_checkout_session(customer_id, price_id, success_url, cancel_url, str(user.id))
-        except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to create checkout session: {str(e)}")
+        except Exception as e: raise HTTPException(status_code=500, detail=ERROR_FAILED_TO_CREATE_CHECKOUT_SESSION.format(error=str(e)))
 
     async def create_portal_session(self, user: User, return_url: str) -> str:
         try:
             subscription = await self.get_by_user_id(user.id)
-            if not subscription: raise HTTPException(status_code=404, detail="Subscription not found")
-            if not subscription.stripe_customer_id: raise HTTPException(status_code=400, detail="Subscription has no Stripe customer")
+            if not subscription: raise HTTPException(status_code=404, detail=ERROR_SUBSCRIPTION_NOT_FOUND)
+            if not subscription.stripe_customer_id: raise HTTPException(status_code=400, detail=ERROR_SUBSCRIPTION_NO_STRIPE_CUSTOMER)
             return await self.stripe_service.create_portal_session(subscription.stripe_customer_id, return_url)
-        except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to create portal session: {str(e)}")
+        except Exception as e: raise HTTPException(status_code=500, detail=ERROR_FAILED_TO_CREATE_PORTAL_SESSION.format(error=str(e)))
 
     async def _get_subscription_by_user(self, user_id: UUID) -> Subscription:
         subscription = await self.subscription_repository.get_by_user_id(user_id)
-        if not subscription: raise HTTPException(status_code=404, detail="Subscription not found")
+        if not subscription: raise HTTPException(status_code=404, detail=ERROR_SUBSCRIPTION_NOT_FOUND)
         return subscription
 
     async def _get_subscription_with_stripe_id(self, user_id: UUID) -> Subscription:
         subscription = await self._get_subscription_by_user(user_id)
-        if not subscription.stripe_subscription_id: raise HTTPException(status_code=404, detail="Subscription not found")
+        if not subscription.stripe_subscription_id: raise HTTPException(status_code=404, detail=ERROR_SUBSCRIPTION_NOT_FOUND)
         return subscription
 
     async def _get_or_create_customer(self, user: User, subscription: Subscription | None) -> str:

@@ -8,6 +8,12 @@ from app.session.service import SessionService
 from app.user.service import UserService
 from typing import Set, Pattern
 from app.config import settings
+from app.lib.constants import (
+    ERROR_UNAUTHORIZED,
+    ERROR_INVALID_OR_EXPIRED_TOKEN,
+    ERROR_USER_OR_SESSION_NOT_FOUND,
+    ERROR_INVALID_SESSION_TOKEN,
+)
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -46,7 +52,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if auth_header and auth_header.startswith("Bearer "): return auth_header.replace("Bearer ", ""), False
         return None, False
 
-    def create_unauthorized_response(self, detail: str = "Unauthorized", status_code: int = 401, clear_cookie: bool = False) -> JSONResponse:
+    def create_unauthorized_response(self, detail: str = ERROR_UNAUTHORIZED, status_code: int = 401, clear_cookie: bool = False) -> JSONResponse:
         """Creates a JSON response for unauthorized requests"""
         response = JSONResponse(status_code=status_code, content={"detail": detail})
         if clear_cookie: response.delete_cookie(key=settings.cookie_key)
@@ -58,9 +64,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
         user_service = UserService(db_session)
         session_service = SessionService(db_session)
         try: payload = auth_service.verify_jwt_token(token)
-        except Exception: return None, None, "Invalid or expired token"
+        except Exception: return None, None, ERROR_INVALID_OR_EXPIRED_TOKEN
         user_data = await user_service.get_user(payload.user.id)
         session_data = await session_service.get_session_by_token(payload.session.session_token)
-        if not user_data or not session_data: return None, None, "User or session not found"
-        if session_data.session_token != payload.session.session_token: return None, None, "Invalid session token"
+        if not user_data or not session_data: return None, None, ERROR_USER_OR_SESSION_NOT_FOUND
+        if session_data.session_token != payload.session.session_token: return None, None, ERROR_INVALID_SESSION_TOKEN
         return user_data, session_data, None

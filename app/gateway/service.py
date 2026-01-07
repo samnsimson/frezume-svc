@@ -12,6 +12,12 @@ from app.gateway.dto import EventStatus, ProcessInputDto, EventResponse
 from app.gateway.emitter import ProgressEmitter
 from app.session_state.dto import SessionStateDto
 from app.session_state.service import SessionStateService
+from app.lib.constants import (
+    GATEWAY_QUEUE_TIMEOUT,
+    GATEWAY_STREAM_CANCELLED,
+    GATEWAY_ERROR_IN_STREAM,
+    GATEWAY_ERROR_PROCESSING_INPUT_DATA,
+)
 
 
 class GatewayService:
@@ -43,15 +49,15 @@ class GatewayService:
                 else: message_json = json.dumps(message)
                 yield f"data: {message_json}\n\n"
             except asyncio.TimeoutError:
-                self.logger.warning("Queue timeout, ending stream")
+                self.logger.warning(GATEWAY_QUEUE_TIMEOUT)
                 if not task.done(): task.cancel()
                 break
             except asyncio.CancelledError:
-                self.logger.info("Stream cancelled by client")
+                self.logger.info(GATEWAY_STREAM_CANCELLED)
                 if not task.done(): task.cancel()
                 break
             except Exception as e:
-                self.logger.error(f"Error in stream: {str(e)}")
+                self.logger.error(GATEWAY_ERROR_IN_STREAM.format(error=str(e)))
                 if not task.done(): task.cancel()
                 yield f"data: {json.dumps({'status': 'error', 'message': str(e)})}\n\n"
                 break
@@ -83,7 +89,7 @@ class GatewayService:
             await self.save(session_state_dto)
             await self.emitter.emit(EventStatus.success)
         except Exception as e:
-            self.logger.error(f"Error processing input data: {str(e)}")
+            self.logger.error(GATEWAY_ERROR_PROCESSING_INPUT_DATA.format(error=str(e)))
             await self.emitter.emit(EventStatus.failed, {"error": str(e)})
         finally:
             await self.emitter.close()
