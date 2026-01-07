@@ -10,10 +10,10 @@ from typing import Set, Pattern
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
-    _exact_skip_paths: Set[str] = {"/api/docs", "/api/redoc", "/api/openapi.json", "/api/favicon.ico"}
-    _require_auth_paths: Set[str] = {"/api/auth/account", "/api/auth/get-session"}
-    _prefix_skip_paths: Set[str] = {"/api/subscriptions/webhook", "/static", "/api/docs", "/api/auth"}
-    _regex_skip_patterns: Set[Pattern] = {re.compile(r"^/api/auth/(?!account$|get-session$).*$")}
+    _exact_skip_paths: Set[str] = {"/docs", "/redoc", "/openapi.json", "/favicon.ico"}
+    _require_auth_paths: Set[str] = {"/auth/account", "/auth/get-session"}
+    _prefix_skip_paths: Set[str] = {"/subscriptions/webhook", "/static", "/docs", "/auth"}
+    _regex_skip_patterns: Set[Pattern] = {re.compile(r"^/auth/(?!account$|get-session$).*$")}
 
     async def dispatch(self, request: Request, call_next):
         """Dispatches the request and authenticates the user"""
