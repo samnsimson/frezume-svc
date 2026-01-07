@@ -1,4 +1,5 @@
 import re
+import logging
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -17,13 +18,21 @@ from app.lib.constants import (
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
+    logger = logging.getLogger(__name__)
     _exact_skip_paths: Set[str] = {"/docs", "/redoc", "/openapi.json", "/favicon.ico"}
     _require_auth_paths: Set[str] = {"/auth/account", "/auth/get-session"}
-    _prefix_skip_paths: Set[str] = {"/subscriptions/webhook", "/static", "/docs", "/auth"}
+    _prefix_skip_paths: Set[str] = {"/subscriptions/webhook", "/static", "/docs"}
     _regex_skip_patterns: Set[Pattern] = {re.compile(r"^/auth/(?!account$|get-session$).*$")}
+
+    def _log_request(self, request: Request):
+        """Logs the request"""
+        self.logger.info(f"\n=== Request: {request.method} {request.url.path} ===")
+        self.logger.info(f"Client IP: {request.client.host}")
+        self.logger.info(f"Should skip: {self.should_skip_path(request.url.path)}")
 
     async def dispatch(self, request: Request, call_next):
         """Dispatches the request and authenticates the user"""
+        self._log_request(request)
         if request.method == "OPTIONS": return await call_next(request)
         if self.should_skip_path(request.url.path): return await call_next(request)
         token, from_cookie = self.extract_token(request)
