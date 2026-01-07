@@ -1,9 +1,10 @@
 import logging
-from fastapi import APIRouter, File, UploadFile, BackgroundTasks
+from fastapi import APIRouter, File, Request, UploadFile, BackgroundTasks
 from app.document.dto import DocumentData, DocumentDataOutput, ExtractDocumentRequest, GenerateDocumentRequest, RewriteDocumentRequest, UploadDocumentResult
 from app.document.service import DocumentService
 from app.lib.annotations import AuthSession, TransactionSession
 from app.lib.annotations import UageGuard
+from app.lib.limitter import limiter
 from app.lib.responses import PDF_RESPONSE_200
 from app.usage.service import UsageService
 from app.session_state.service import SessionStateService
@@ -15,7 +16,8 @@ router = APIRouter(tags=["document"])
 
 
 @router.post("/upload", operation_id="uploadDocument", response_model=UploadDocumentResult)
-async def upload_document(session: TransactionSession, user_session: AuthSession, file: UploadFile = File(...)):
+@limiter.limit("5/minute")
+async def upload_document(request: Request, session: TransactionSession, user_session: AuthSession, file: UploadFile = File(...)):
     document_service = DocumentService(session)
     session_state_service = SessionStateService(session)
     result = await document_service.upload_document(file, user_session.user.id)
@@ -25,7 +27,8 @@ async def upload_document(session: TransactionSession, user_session: AuthSession
 
 
 @router.post("/parse", operation_id="parseDocument", response_model=str)
-async def parse_document(session: TransactionSession, user_session: AuthSession, file: UploadFile = File(...)):
+@limiter.limit("5/minute")
+async def parse_document(request: Request, session: TransactionSession, user_session: AuthSession, file: UploadFile = File(...)):
     document_service = DocumentService(session)
     session_state_service = SessionStateService(session)
     result = await document_service.parse_document(file)
@@ -35,7 +38,8 @@ async def parse_document(session: TransactionSession, user_session: AuthSession,
 
 
 @router.post("/extract", operation_id="extractDocument", response_model=DocumentData)
-async def extract_document(data: ExtractDocumentRequest, session: TransactionSession, user_session: AuthSession):
+@limiter.limit("5/minute")
+async def extract_document(request: Request, data: ExtractDocumentRequest, session: TransactionSession, user_session: AuthSession):
     document_service = DocumentService(session)
     session_state_service = SessionStateService(session)
     result = await document_service.extract_document(data.file_content)
@@ -45,7 +49,8 @@ async def extract_document(data: ExtractDocumentRequest, session: TransactionSes
 
 
 @router.post("/rewrite", operation_id="rewriteDocument", response_model=DocumentDataOutput)
-async def rewrite_document(data: RewriteDocumentRequest, session: TransactionSession, user_session: AuthSession, usage: UageGuard):
+@limiter.limit("5/minute")
+async def rewrite_document(request: Request, data: RewriteDocumentRequest, session: TransactionSession, user_session: AuthSession, usage: UageGuard):
     try:
         document_service = DocumentService(session)
         usage_service = UsageService(session)
@@ -62,7 +67,8 @@ async def rewrite_document(data: RewriteDocumentRequest, session: TransactionSes
 
 
 @router.post("/generate", operation_id="generateDocument", responses={200: PDF_RESPONSE_200})
-async def generate_document(data: GenerateDocumentRequest, session: TransactionSession, background_tasks: BackgroundTasks):
+@limiter.limit("5/minute")
+async def generate_document(request: Request, data: GenerateDocumentRequest, session: TransactionSession, background_tasks: BackgroundTasks):
     try:
         document_service = DocumentService(session)
         file_name, pdf_path = await document_service.generate_document(data.template_name, data.document_data)
@@ -74,7 +80,8 @@ async def generate_document(data: GenerateDocumentRequest, session: TransactionS
 
 
 @router.post("/save", operation_id="saveDocument")
-async def save_document(session: TransactionSession, user_session: AuthSession, file: UploadFile = File(...)):
+@limiter.limit("30/minute")
+async def save_document(request: Request, session: TransactionSession, user_session: AuthSession, file: UploadFile = File(...)):
     document_service = DocumentService(session)
     session_state_service = SessionStateService(session)
     result = await document_service.save_document(file, user_session.user.id)

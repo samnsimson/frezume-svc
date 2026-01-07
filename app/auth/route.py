@@ -8,22 +8,24 @@ from app.auth.dto import DeleteAccountResponse, LoginDto, LoginResponseDto, Sign
 from app.auth.service import AuthService
 from app.auth.task import send_verification_email
 from app.lib.annotations import AuthSession, TransactionSession
-from app.lib.constants import (
-    ERROR_FAILED_TO_SIGN_OUT,
-    SUCCESS_SIGNED_OUT,
-    SUCCESS_ACCOUNT_DELETED,
-)
+from app.lib.limitter import limiter
 from app.session.service import SessionService
 from app.stripe.service import StripeService
 from app.subscription.dto import CreateSubscriptionDto
 from app.subscription.service import SubscriptionService
 from app.verification.service import VerificationService
+from app.lib.constants import (
+    ERROR_FAILED_TO_SIGN_OUT,
+    SUCCESS_SIGNED_OUT,
+    SUCCESS_ACCOUNT_DELETED,
+)
 
 router = APIRouter(tags=["auth"])
 
 
 @router.post("/sign-in", operation_id="signIn", response_model=LoginResponseDto)
-async def login(dto: LoginDto, response: Response, session: TransactionSession):
+@limiter.limit("5/minute")
+async def login(request: Request, dto: LoginDto, response: Response, session: TransactionSession):
     auth_service = AuthService(session)
     result = await auth_service.signin(dto)
     jwt_token = auth_service.create_jwt_token(result.user, result.session)
@@ -34,7 +36,8 @@ async def login(dto: LoginDto, response: Response, session: TransactionSession):
 
 
 @router.post("/sign-up", operation_id="signUp", response_model=User)
-async def signup(dto: SignupDto, session: TransactionSession, background_tasks: BackgroundTasks):
+@limiter.limit("5/minute")
+async def signup(request: Request, dto: SignupDto, session: TransactionSession, background_tasks: BackgroundTasks):
     auth_service = AuthService(session)
     stripe_service = StripeService(session)
     account_service = AccountService(session)
@@ -63,7 +66,8 @@ async def sign_out(response: Response, session: TransactionSession, request: Req
 
 
 @router.get("/get-session", operation_id="getSession", response_model=UserSession)
-async def get_session(user_session: AuthSession):
+@limiter.limit("5/second")
+async def get_session(request: Request, user_session: AuthSession):
     return user_session
 
 

@@ -2,6 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 from app.config import settings
 from fastapi.middleware.cors import CORSMiddleware
+from app.lib.limitter import limiter
 from app.middleware.auth_middleware import AuthMiddleware
 from app.middleware.logging_middleware import LoggingMiddleware
 from contextlib import asynccontextmanager
@@ -22,6 +23,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Resumevx AI SVC", description="AI Services for Resumevx", lifespan=lifespan)
+
+app.state.limiter = limiter
 
 
 app.add_middleware(

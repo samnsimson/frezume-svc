@@ -4,6 +4,8 @@ from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from botocore.exceptions import ClientError
 from pydantic_ai.exceptions import ModelHTTPError, AgentRunError
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
 from app.lib.constants import (
     ERROR_DATABASE_CONSTRAINT_VIOLATION,
     ERROR_USERNAME_ALREADY_EXISTS,
@@ -37,6 +39,8 @@ logger = logging.getLogger(__name__)
 
 def setup_error_handlers(app: FastAPI):
     """Register all error handlers for the FastAPI application."""
+
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
     @app.exception_handler(IntegrityError)
     async def integrity_error_handler(request: Request, exc: IntegrityError):
