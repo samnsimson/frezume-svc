@@ -1,3 +1,4 @@
+import logging
 import uvicorn
 from fastapi import FastAPI
 from app.config import settings
@@ -14,6 +15,13 @@ from app.gateway.route import router as gateway_router
 from app.document.route import router as document_router
 from app.subscription.route import router as subscription_router
 from app.session_state.route import router as session_state_router
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(levelname)s: %(asctime)s [%(name)s] - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 
 @asynccontextmanager
