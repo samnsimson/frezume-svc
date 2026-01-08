@@ -19,6 +19,11 @@ class Repository(Generic[T]):
         elif hasattr(data, 'model_dump'): return self.model(**data.model_dump())
         else: return data
 
+    def __get_update_obj(self, data: T, exclude_fields: set[str]) -> dict:
+        if isinstance(data, dict): return {k: v for k, v in data.items() if k not in exclude_fields}
+        elif hasattr(data, 'model_dump'): return data.model_dump(exclude_unset=True, exclude=exclude_fields)
+        else: return {}
+
     async def create(self, data: T, commit: bool = False) -> T:
         obj = self.__get_obj(data)
         self.session.add(obj)
@@ -39,8 +44,8 @@ class Repository(Generic[T]):
     async def update(self, id: str | UUID, data: T, commit: bool = False) -> T:
         entity = await self.get(id)
         if not entity: raise ValueError(f"Entity with id {id} not found")
-        data_obj = self.__get_obj(data)
-        for key, value in data_obj.model_dump(exclude_unset=True).items():
+        update_data = self.__get_update_obj(data, {"id", "created_at"})
+        for key, value in update_data.items():
             if value is not None: setattr(entity, key, value)
         self.session.add(entity)
         if commit: await self.session.commit()

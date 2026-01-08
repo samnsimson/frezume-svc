@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Request, Response, BackgroundTasks
 from app.account.dto import CreateAccountDto
 from app.account.service import AccountService
@@ -32,9 +31,7 @@ router = APIRouter(tags=["auth"])
 async def login(request: Request, dto: LoginDto, response: Response, session: TransactionSession):
     auth_service = AuthService(session)
     result = await auth_service.signin(dto)
-    jwt_token = auth_service.create_jwt_token(result.user, result.session)
-    expires_at = result.session.expires_at
-    max_age = int((expires_at - datetime.now(timezone.utc)).total_seconds())
+    jwt_token, max_age = auth_service.get_cookie_data(result.user, result.session)
     response.set_cookie(key=settings.cookie_key, value=jwt_token, httponly=True, secure=True, samesite="lax", domain=settings.host, max_age=max_age)
     return result
 
@@ -70,8 +67,7 @@ async def sign_out(response: Response, session: TransactionSession, request: Req
 
 
 @router.get("/get-session", operation_id="getSession", response_model=UserSession)
-@limiter.limit("5/second")
-async def get_session(request: Request, user_session: AuthSession):
+async def get_session(user_session: AuthSession):
     return user_session
 
 
@@ -88,17 +84,24 @@ async def delete_account(session: TransactionSession, user_session: AuthSession)
 
 
 @router.post("/verify-email", operation_id="verifyEmail", response_model=VerifyEmailResponse)
-async def verify_email(data: VerifyEmailRequest, session: TransactionSession, user_session: AuthSession):
+async def verify_email(data: VerifyEmailRequest, response: Response, session: TransactionSession, user_session: AuthSession):
     user_service = UserService(session)
     verification_service = VerificationService(session)
+    session_service = SessionService(session)
+    auth_service = AuthService(session)
+
     verification = await verification_service.verify(data.token, data.identifier, user_session.user.id)
     if not verification: raise HTTPException(status_code=401, detail=ERROR_FAILED_TO_VERIFY_EMAIL)
-    await user_service.update_user(user_session.user.id, User(email_verified=True))
+    updated_user = await user_service.update_user(user_session.user.id, User.model_construct(email_verified=True))
+    updated_session = await session_service.get_session_by_token(user_session.session.session_token)
+    if not updated_session: raise HTTPException(status_code=401, detail="Session not found")
+    jwt_token, max_age = auth_service.get_cookie_data(updated_user, updated_session)
+    response.set_cookie(key=settings.cookie_key, value=jwt_token, httponly=True, secure=True, samesite="lax", domain=settings.host, max_age=max_age)
     return VerifyEmailResponse(status="success", message=SUCCESS_VERIFIED_EMAIL)
 
 
-@router.post("/resend-verification-email", operation_id="resendVerificationEmail", response_model=VerifyEmailResponse)
-async def resend_verification_email(session: TransactionSession, user_session: AuthSession, background_tasks: BackgroundTasks):
+@router.post("/send-verification-otp", operation_id="sendVerificationOtp", response_model=VerifyEmailResponse)
+async def send_verification_otp(session: TransactionSession, user_session: AuthSession, background_tasks: BackgroundTasks):
     verification_service = VerificationService(session)
     verification = await verification_service.create_verification('email', user_session.user.id, 'otp')
     background_tasks.add_task(send_verification_email, user_session.user.email, verification.token, session)

@@ -37,7 +37,6 @@ class AuthService:
 
     def _validate_user_for_signin(self, user: User) -> None:
         if not user.account: raise HTTPException(status_code=401, detail=ERROR_USER_HAS_NO_ACCOUNT)
-        if not user.email_verified: raise HTTPException(status_code=401, detail=ERROR_EMAIL_NOT_VERIFIED)
 
     async def signin(self, dto: LoginDto) -> LoginResponseDto:
         user = await self.user_service.get_by_username_or_email(dto.username)
@@ -56,10 +55,16 @@ class AuthService:
     def _create_jwt_payload(self, user: User, session: SessionModel) -> dict:
         iat = int(datetime.now(timezone.utc).timestamp())
         exp = int(session.expires_at.timestamp())
-        return JwtPayload(user=user, session=session, iat=iat, exp=exp).model_dump(mode='json')
+        return JwtPayload(user=user, session=session, iat=iat, exp=exp).model_dump(mode='json', by_alias=True)
 
     def create_jwt_token(self, user: User, session: SessionModel) -> str:
         return jwt.encode(self._create_jwt_payload(user, session), settings.jwt_secret, algorithm="HS256")
+
+    def get_cookie_data(self, user: User, session: SessionModel) -> tuple[str, int]:
+        jwt_token = self.create_jwt_token(user, session)
+        expires_at = session.expires_at
+        max_age = int((expires_at - datetime.now(timezone.utc)).total_seconds())
+        return jwt_token, max_age
 
     def _decode_token(self, token: str) -> dict:
         try: return jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])

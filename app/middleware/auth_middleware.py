@@ -20,9 +20,9 @@ from app.lib.constants import (
 class AuthMiddleware(BaseHTTPMiddleware):
     logger = logging.getLogger(__name__)
     _exact_skip_paths: Set[str] = {"/docs", "/redoc", "/openapi.json", "/favicon.ico"}
-    _require_auth_paths: Set[str] = {"/auth/account", "/auth/get-session", "/auth/verify-email", "/auth/resend-verification-email"}
+    _require_auth_paths: Set[str] = {"/auth/account", "/auth/get-session", "/auth/verify-email", "/auth/send-verification-otp"}
     _prefix_skip_paths: Set[str] = {"/subscriptions/webhook", "/static", "/docs"}
-    _regex_skip_patterns: Set[Pattern] = {re.compile(r"^/auth/(?!account$|get-session$|verify-email$|resend-verification-email$).*$")}
+    _regex_skip_patterns: Set[Pattern] = {re.compile(r"^/auth/(?!account$|get-session$|verify-email$|send-verification-otp$).*$")}
 
     def _log_request(self, request: Request):
         """Logs the request"""
