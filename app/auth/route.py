@@ -32,7 +32,8 @@ async def login(request: Request, dto: LoginDto, response: Response, session: Tr
     auth_service = AuthService(session)
     result = await auth_service.signin(dto)
     jwt_token, max_age = auth_service.get_cookie_data(result.user, result.session)
-    response.set_cookie(key=settings.cookie_key, value=jwt_token, httponly=True, secure=True, samesite="lax", domain=settings.host, max_age=max_age)
+    cookie_domain = settings.cookie_domain if settings.cookie_domain else None
+    response.set_cookie(key=settings.cookie_key, value=jwt_token, httponly=True, secure=True, samesite="lax", domain=cookie_domain, max_age=max_age)
     return result
 
 
@@ -62,7 +63,8 @@ async def sign_out(response: Response, session: TransactionSession, request: Req
     user_session = auth_service.get_session_from_request(request)
     result = await session_service.delete_session_by_token(user_session.session.session_token)
     if not result: raise HTTPException(status_code=401, detail=ERROR_FAILED_TO_SIGN_OUT)
-    response.delete_cookie(key=settings.cookie_key)
+    cookie_domain = settings.cookie_domain if settings.cookie_domain else None
+    response.delete_cookie(key=settings.cookie_key, domain=cookie_domain, samesite="lax", secure=True, httponly=True)
     return {"message": SUCCESS_SIGNED_OUT}
 
 
@@ -96,7 +98,8 @@ async def verify_email(data: VerifyEmailRequest, response: Response, session: Tr
     updated_session = await session_service.get_session_by_token(user_session.session.session_token)
     if not updated_session: raise HTTPException(status_code=401, detail="Session not found")
     jwt_token, max_age = auth_service.get_cookie_data(updated_user, updated_session)
-    response.set_cookie(key=settings.cookie_key, value=jwt_token, httponly=True, secure=True, samesite="lax", domain=settings.host, max_age=max_age)
+    cookie_domain = settings.cookie_domain if settings.cookie_domain else None
+    response.set_cookie(key=settings.cookie_key, value=jwt_token, httponly=True, secure=True, samesite="lax", domain=cookie_domain, max_age=max_age)
     return VerifyEmailResponse(status="success", message=SUCCESS_VERIFIED_EMAIL)
 
 
