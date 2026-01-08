@@ -1,4 +1,4 @@
-from typing import List, Optional, Literal
+from typing import List, Optional, Literal, Dict
 from sqlmodel import Field
 from app.lib.model import BaseModel
 
@@ -38,7 +38,8 @@ class Education(BaseModel):
 class DocumentData(BaseModel):
     basics: Basics = Field(description="Basic personal and contact information")
     experience: List[Experience] = Field(description="List of work experience entries in chronological order")
-    skills: List[str] = Field(description="List of technical skills, programming languages, tools, or competencies")
+    skills: Dict[str, List[str]] = Field(
+        description="Dictionary of skills grouped by category. Keys are category names (e.g., 'Programming Languages', 'Tools', 'Frameworks'), values are lists of skills in that category")
     education: List[Education] = Field(description="List of educational qualifications")
 
 

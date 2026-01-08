@@ -179,7 +179,11 @@
         {% endif %} {% if skills %}
         <div class="section">
             <div class="section-title">Skills</div>
-            <span class="skills">{{ " | ".join(skills) }}</span>
+            <div class="skills">
+                {% for category, skill_list in skills.items() %}
+                <div style="margin-bottom: 8px"><strong>{{ category }}:</strong> {{ " | ".join(skill_list) }}</div>
+                {% endfor %}
+            </div>
         </div>
         {% endif %} {% if experience %}
         <div class="section">

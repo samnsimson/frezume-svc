@@ -10,6 +10,31 @@ from app.document.dto import DocumentData
 from app.lib.model import BaseModel
 
 
+def migrate_skills_to_dict(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Migrate skills from old list format to new dictionary format"""
+    if not data:
+        return data
+
+    data = data.copy()
+    skills = data.get('skills')
+
+    # If skills is already a dict, return as-is
+    if isinstance(skills, dict):
+        return data
+
+    # If skills is a list, convert to dict with default category
+    if isinstance(skills, list):
+        if skills:  # Only create category if there are skills
+            data['skills'] = {'Technical Skills': skills}
+        else:
+            data['skills'] = {}
+        return data
+
+    # For any other case (None, missing, or unexpected type), ensure skills is a dict
+    data['skills'] = {}
+    return data
+
+
 def default_time():
     return datetime.now(timezone.utc)
 
@@ -131,13 +156,24 @@ class SessionState(BaseSQLModel, table=True):
         """Convert DocumentData to dict when saving to database, or keep dict as-is"""
         if not v: return None
         if isinstance(v, DocumentData): return v.model_dump()
-        if isinstance(v, dict): return v
+        if isinstance(v, dict):
+            # Migrate old list format to new dict format when saving
+            return migrate_skills_to_dict(v)
 
     @field_serializer('document_data', when_used='json')
     def serialize_document_data(self, v: Dict[str, Any] | None) -> DocumentData | None:
         """Convert dict to DocumentData for JSON serialization in API responses"""
         if not v: return None
-        if isinstance(v, dict): return DocumentData(**v)
+        if isinstance(v, dict):
+            # Migrate old list format to new dict format
+            v = migrate_skills_to_dict(v)
+            # Double-check: ensure skills is always a dict before creating DocumentData
+            if 'skills' not in v or not isinstance(v.get('skills'), dict):
+                if isinstance(v.get('skills'), list):
+                    v['skills'] = {'Technical Skills': v['skills']} if v['skills'] else {}
+                else:
+                    v['skills'] = {}
+            return DocumentData(**v)
 
     @classmethod
     @field_validator('generated_document_data', mode='before')
@@ -145,10 +181,21 @@ class SessionState(BaseSQLModel, table=True):
         """Convert DocumentData to dict when saving to database, or keep dict as-is"""
         if not v: return None
         if isinstance(v, DocumentData): return v.model_dump()
-        if isinstance(v, dict): return v
+        if isinstance(v, dict):
+            # Migrate old list format to new dict format when saving
+            return migrate_skills_to_dict(v)
 
     @field_serializer('generated_document_data', when_used='json')
     def serialize_generated_document_data(self, v: Dict[str, Any] | None) -> DocumentData | None:
         """Convert dict to DocumentData for JSON serialization in API responses"""
         if not v: return None
-        if isinstance(v, dict): return DocumentData(**v)
+        if isinstance(v, dict):
+            # Migrate old list format to new dict format
+            v = migrate_skills_to_dict(v)
+            # Double-check: ensure skills is always a dict before creating DocumentData
+            if 'skills' not in v or not isinstance(v.get('skills'), dict):
+                if isinstance(v.get('skills'), list):
+                    v['skills'] = {'Technical Skills': v['skills']} if v['skills'] else {}
+                else:
+                    v['skills'] = {}
+            return DocumentData(**v)
