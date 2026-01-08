@@ -37,3 +37,13 @@ class UserSession(BaseModel):
 class DeleteAccountResponse(BaseModel):
     status: Literal["success", "failed"] = Field(description="Status")
     message: Optional[str] = Field(default=None, description="Message")
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str = Field(description="Verification token")
+    identifier: str = Field(description="Identifier")
+
+
+class VerifyEmailResponse(BaseModel):
+    status: Literal["success", "failed"] = Field(description="Status")
+    message: Optional[str] = Field(default=None, description="Message")

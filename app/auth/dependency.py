@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from fastapi import Request, HTTPException
 from app.auth.dto import UserSession
 from app.database.models import Session, User

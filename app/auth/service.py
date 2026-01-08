@@ -36,7 +36,6 @@ class AuthService:
         return self._hash_password(password) == hashed_password
 
     def _validate_user_for_signin(self, user: User) -> None:
-        if not user: raise HTTPException(status_code=401, detail=ERROR_USER_NOT_FOUND)
         if not user.account: raise HTTPException(status_code=401, detail=ERROR_USER_HAS_NO_ACCOUNT)
         if not user.email_verified: raise HTTPException(status_code=401, detail=ERROR_EMAIL_NOT_VERIFIED)
 

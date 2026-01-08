@@ -13,6 +13,7 @@ ERROR_INVALID_SESSION_TOKEN = "Invalid session token"
 ERROR_FAILED_TO_SIGN_OUT = "Failed to sign out"
 ERROR_TOKEN_DOES_NOT_BELONG_TO_USER = "Token does not belong to the user"
 ERROR_INVALID_IDENTIFIER = "Invalid identifier"
+ERROR_FAILED_TO_VERIFY_EMAIL = "Failed to verify email"
 
 # Error Messages - Database
 ERROR_DATABASE_CONSTRAINT_VIOLATION = "A database constraint violation occurred"
@@ -65,6 +66,8 @@ ERROR_TYPE_INTERNAL_SERVER_ERROR = "InternalServerError"
 # Success Messages
 SUCCESS_SIGNED_OUT = "Signed out successfully"
 SUCCESS_ACCOUNT_DELETED = "Account deleted successfully"
+SUCCESS_VERIFIED_EMAIL = "Email verified successfully"
+SUCCESS_RESENT_VERIFICATION_EMAIL = "Verification email resent successfully"
 
 # Email Content
 EMAIL_FROM_ADDRESS = "no-reply@wailist.com"
