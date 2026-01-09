@@ -107,6 +107,14 @@ class DocumentService:
         file_name = f"{template_name}-{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
         temp_dir = tempfile.gettempdir()
         pdf_path = os.path.join(temp_dir, file_name)
-        html_content = template.render(basics=data.basics, experience=data.experience, skills=data.skills, education=data.education)
+        html_content = template.render(
+            basics=data.basics,
+            experience=data.experience,
+            skills=data.skills,
+            education=data.education,
+            certificates=data.certificates,
+            projects=data.projects,
+            achievements=data.achievements
+        )
         HTML(string=html_content, base_url=str(template_dir)).write_pdf(pdf_path)
         return file_name, pdf_path

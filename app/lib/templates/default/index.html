@@ -86,12 +86,18 @@
             }
 
             .experience-item,
-            .education-item {
+            .education-item,
+            .certificate-item,
+            .project-item,
+            .achievement-item {
                 margin-bottom: 15px;
             }
 
             .experience-header,
-            .education-header {
+            .education-header,
+            .certificate-header,
+            .project-header,
+            .achievement-header {
                 display: flex;
                 justify-content: space-between;
                 align-items: baseline;
@@ -99,20 +105,28 @@
             }
 
             .experience-title,
-            .education-title {
+            .education-title,
+            .certificate-name,
+            .project-name,
+            .achievement-name {
                 font-weight: bold;
                 font-size: 12pt;
                 color: #2c3e50;
             }
 
             .experience-company,
-            .education-institution {
+            .education-institution,
+            .certificate-issuer,
+            .project-role {
                 font-style: italic;
                 color: #555;
             }
 
             .experience-location,
-            .education-year {
+            .education-year,
+            .certificate-year,
+            .project-date,
+            .achievement-year {
                 color: #777;
                 font-size: 10pt;
             }
@@ -127,6 +141,46 @@
             .education-degree {
                 margin-top: 8px;
                 padding-left: 20px;
+            }
+
+            .certificate-description,
+            .project-description,
+            .achievement-description {
+                margin-top: 5px;
+                color: #555;
+                font-size: 10pt;
+            }
+
+            .project-link {
+                color: #2c3e50;
+                text-decoration: none;
+                font-size: 10pt;
+            }
+
+            .project-link:hover {
+                text-decoration: underline;
+            }
+
+            .project-responsibilities {
+                margin-top: 8px;
+                padding-left: 20px;
+            }
+
+            .project-responsibilities ul {
+                list-style: none;
+            }
+
+            .project-responsibilities li {
+                margin-bottom: 5px;
+                padding-left: 15px;
+                position: relative;
+            }
+
+            .project-responsibilities li:before {
+                content: "▸";
+                position: absolute;
+                left: 0;
+                color: #2c3e50;
             }
 
             .experience-bullets ul {
@@ -223,6 +277,86 @@
                     </div>
                     <div class="education-year">{{ edu.year }}</div>
                 </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %} {% if certificates %}
+        <div class="section">
+            <div class="section-title">Certifications</div>
+            {% for cert in certificates %}
+            <div class="certificate-item">
+                <div class="certificate-header">
+                    <div>
+                        <div class="certificate-name">
+                            {{ cert.name }}{% if cert.url %} <a href="{{ cert.url }}" class="project-link" target="_blank">🔗</a>{% endif %}
+                        </div>
+                        {% if cert.issuer %}
+                        <div class="certificate-issuer">{{ cert.issuer }}</div>
+                        {% endif %}
+                    </div>
+                    {% if cert.year %}
+                    <div class="certificate-year">{{ cert.year }}</div>
+                    {% endif %}
+                </div>
+                {% if cert.description %}
+                <div class="certificate-description">{{ cert.description }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %} {% if projects %}
+        <div class="section">
+            <div class="section-title">Projects</div>
+            {% for project in projects %}
+            <div class="project-item">
+                <div class="project-header">
+                    <div>
+                        <div class="project-name">
+                            {{ project.name }}{% if project.link %} <a href="{{ project.link }}" class="project-link" target="_blank">🔗</a>{% endif %}
+                        </div>
+                        {% if project.role %}
+                        <div class="project-role">{{ project.role }}</div>
+                        {% endif %}
+                    </div>
+                    {% if project.start_date or project.end_date %}
+                    <div class="project-date">
+                        {% if project.start_date %}{{ project.start_date }}{% endif %}
+                        {% if project.start_date and project.end_date %} - {% endif %}
+                        {% if project.end_date %}{{ project.end_date }}{% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% if project.description %}
+                <div class="project-description">{{ project.description }}</div>
+                {% endif %}
+                {% if project.responsibilities %}
+                <div class="project-responsibilities">
+                    <ul>
+                        {% for responsibility in project.responsibilities %}
+                        <li>{{ responsibility }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %} {% if achievements %}
+        <div class="section">
+            <div class="section-title">Achievements</div>
+            {% for achievement in achievements %}
+            <div class="achievement-item">
+                <div class="achievement-header">
+                    <div>
+                        <div class="achievement-name">{{ achievement.name }}</div>
+                    </div>
+                    {% if achievement.year %}
+                    <div class="achievement-year">{{ achievement.year }}</div>
+                    {% endif %}
+                </div>
+                {% if achievement.description %}
+                <div class="achievement-description">{{ achievement.description }}</div>
+                {% endif %}
             </div>
             {% endfor %}
         </div>

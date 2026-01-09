@@ -35,12 +35,38 @@ class Education(BaseModel):
     year: str = Field(description="Graduation year or date range")
 
 
+class Certificate(BaseModel):
+    name: str = Field(description="Name of the certificate")
+    description: Optional[str] = Field(default=None, description="Description of the certificate")
+    issuer: Optional[str] = Field(default=None, description="Issuer of the certificate")
+    year: Optional[str] = Field(default=None, description="Year of the certificate")
+    url: Optional[str] = Field(default=None, description="URL of the certificate")
+
+
+class Project(BaseModel):
+    name: str = Field(description="Name of the project")
+    description: Optional[str] = Field(default=None, description="Description of the project")
+    link: Optional[str] = Field(default=None, description="Link of the project")
+    start_date: Optional[str] = Field(default=None, description="Start date of the project")
+    end_date: Optional[str] = Field(default=None, description="End date of the project")
+    role: Optional[str] = Field(default=None, description="Role of the project")
+    responsibilities: Optional[List[str]] = Field(default=None, description="Responsibilities of the project")
+
+
+class Achievement(BaseModel):
+    name: str = Field(description="Name of the achievement")
+    description: Optional[str] = Field(default=None, description="Description of the achievement")
+    year: Optional[str] = Field(default=None, description="Year of the achievement")
+
+
 class DocumentData(BaseModel):
     basics: Basics = Field(description="Basic personal and contact information")
     experience: List[Experience] = Field(description="List of work experience entries in chronological order")
-    skills: Dict[str, List[str]] = Field(
-        description="Dictionary of skills grouped by category. Keys are category names (e.g., 'Programming Languages', 'Tools', 'Frameworks'), values are lists of skills in that category")
+    skills: Dict[str, List[str]] = Field(description="Dictionary of skills grouped by category")
     education: List[Education] = Field(description="List of educational qualifications")
+    certificates: List[Certificate] = Field(description="List of certificates")
+    projects: List[Project] = Field(description="List of projects")
+    achievements: List[Achievement] = Field(description="List of achievements")
 
 
 class DocumentDataOutput(BaseModel):
