@@ -43,7 +43,7 @@ class SubscriptionService:
             subscription = await self._get_subscription_with_stripe_id(user_id)
             stripe_sub = await self.stripe_service.cancel_stripe_subscription(subscription.stripe_subscription_id, cancel_immediately)
             if not cancel_immediately: subscription.cancel_at_period_end = True
-            subscription.status = stripe_sub['status']
+            subscription.status = stripe_sub.get('status', subscription.status)
             subscription.canceled_at = datetime.now(timezone.utc)
             return await self._save_subscription(subscription)
         except Exception as e: raise HTTPException(status_code=500, detail=ERROR_FAILED_TO_CANCEL_SUBSCRIPTION.format(error=str(e)))
@@ -115,17 +115,27 @@ class SubscriptionService:
         return customer.id
 
     def _update_from_stripe(self, subscription: Subscription, stripe_sub: dict) -> None:
-        subscription.status = stripe_sub["status"]
+        subscription.status = stripe_sub.get("status", subscription.status)
         self._update_periods(subscription, stripe_sub)
         subscription.cancel_at_period_end = stripe_sub.get("cancel_at_period_end", False)
         if stripe_sub.get("canceled_at"): subscription.canceled_at = datetime.fromtimestamp(stripe_sub["canceled_at"], tz=timezone.utc)
 
     def _update_periods(self, subscription: Subscription, stripe_sub: dict) -> None:
-        subscription.current_period_start = datetime.fromtimestamp(stripe_sub["current_period_start"], tz=timezone.utc)
-        subscription.current_period_end = datetime.fromtimestamp(stripe_sub["current_period_end"], tz=timezone.utc)
+        # Safely handle missing period fields (may not exist in all subscription states)
+        if stripe_sub.get("current_period_start"):
+            subscription.current_period_start = datetime.fromtimestamp(stripe_sub["current_period_start"], tz=timezone.utc)
+        if stripe_sub.get("current_period_end"):
+            subscription.current_period_end = datetime.fromtimestamp(stripe_sub["current_period_end"], tz=timezone.utc)
 
     def _extract_price_id(self, stripe_sub: dict) -> str:
-        return stripe_sub["items"]["data"][0]["price"]["id"]
+        # Safely extract price_id from Stripe subscription object
+        items = stripe_sub.get("items", {})
+        data = items.get("data", [])
+        if not data: raise HTTPException(status_code=400, detail="Subscription has no items")
+        price = data[0].get("price", {})
+        price_id = price.get("id")
+        if not price_id: raise HTTPException(status_code=400, detail="Subscription item has no price ID")
+        return price_id
 
     async def _save_subscription(self, subscription: Subscription) -> Subscription:
         return await self.subscription_repository.update_subscription(subscription, commit=False)

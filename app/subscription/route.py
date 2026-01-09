@@ -46,4 +46,5 @@ async def create_portal_session(data: CreatePortalSessionDto, session: Transacti
 
 @router.post("/webhook", operation_id="stripeWebhook")
 async def stripe_webhook(request: Request, session: TransactionSession):
+    print("Stripe webhook received")
     return await handle_stripe_webhook(request, session)

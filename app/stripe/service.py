@@ -24,11 +24,20 @@ class StripeService:
         except Exception as e: raise HTTPException(status_code=500, detail=ERROR_FAILED_TO_CREATE_STRIPE_CUSTOMER.format(error=str(e)))
 
     def _build_checkout_params(self, customer_id: str, price_id: str, success_url: str, cancel_url: str, user_id: str) -> dict:
-        return {"customer": customer_id, "payment_method_types": ["card", "paypal"], "line_items": [{"price": price_id, "quantity": 1}], "mode": "subscription", "success_url": success_url, "cancel_url": cancel_url, "metadata": {"user_id": user_id}}
+        return {
+            "customer": customer_id,
+            "payment_method_types": ["card", "paypal"],
+            "line_items": [{"price": price_id, "quantity": 1}],
+            "mode": "subscription",
+            "success_url": success_url,
+            "cancel_url": cancel_url,
+            "metadata": {"user_id": user_id}
+        }
 
     async def create_checkout_session(self, customer_id: str, price_id: str, success_url: str, cancel_url: str, user_id: str) -> str:
         try:
-            session = await stripe.checkout.Session.create_async(**self._build_checkout_params(customer_id, price_id, success_url, cancel_url, user_id))
+            checkout_params = self._build_checkout_params(customer_id, price_id, success_url, cancel_url, user_id)
+            session = await stripe.checkout.Session.create_async(**checkout_params)
             return session.url
         except Exception as e: raise HTTPException(status_code=500, detail=ERROR_FAILED_TO_CREATE_CHECKOUT_SESSION.format(error=str(e)))
 
