@@ -84,3 +84,13 @@ GATEWAY_QUEUE_TIMEOUT = "Queue timeout, ending stream"
 GATEWAY_STREAM_CANCELLED = "Stream cancelled by client"
 GATEWAY_ERROR_IN_STREAM = "Error in stream: {error}"
 GATEWAY_ERROR_PROCESSING_INPUT_DATA = "Error processing input data: {error}"
+
+# Document Templates
+TEMPLATE_MAP = {
+    "default": "default",
+    "modern": "modern",
+    "classic": "classic"
+}
+
+# Error Messages - Document Templates
+ERROR_INVALID_TEMPLATE_NAME = "Invalid template name. Available templates: {available_templates}"

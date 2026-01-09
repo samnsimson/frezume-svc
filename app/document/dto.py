@@ -89,5 +89,5 @@ class ExtractDocumentRequest(BaseModel):
 
 
 class GenerateDocumentRequest(BaseModel):
-    template_name: Optional[Literal["default"]] = Field(default="default", description="Template name")
+    template_name: Optional[Literal["default", "modern", "classic"]] = Field(default="default", description="Template name: 'default', 'modern', or 'classic'")
     document_data: DocumentData = Field(description="Document data")

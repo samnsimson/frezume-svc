@@ -16,6 +16,7 @@ from app.agent.dto import DocumentDependency
 from app.agent.document_rewrite_agent import document_rewrite_agent
 from app.agent.document_extract_agent import document_extract_agent
 from app.lib.http_client import HttpClient
+from app.lib.constants import TEMPLATE_MAP, ERROR_INVALID_TEMPLATE_NAME
 
 
 class DocumentService:
@@ -101,9 +102,14 @@ class DocumentService:
         return result.output
 
     async def generate_document(self, template_name: str, data: DocumentData) -> tuple[str, str]:
+        if template_name not in TEMPLATE_MAP:
+            available_templates = ", ".join(TEMPLATE_MAP.keys())
+            raise HTTPException(status_code=400, detail=ERROR_INVALID_TEMPLATE_NAME.format(available_templates=available_templates))
+
+        template_dir_name = TEMPLATE_MAP[template_name]
         template_dir = Path(__file__).parent.parent / "lib" / "templates"
         jinja_env = Environment(loader=FileSystemLoader(str(template_dir)))
-        template = jinja_env.get_template(f"{template_name}/index.html")
+        template = jinja_env.get_template(f"{template_dir_name}/index.html")
         file_name = f"{template_name}-{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
         temp_dir = tempfile.gettempdir()
         pdf_path = os.path.join(temp_dir, file_name)
