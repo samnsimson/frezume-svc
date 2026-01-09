@@ -16,24 +16,24 @@ document_rewrite_agent = Agent[DocumentDependency, DocumentDataOutput](
 
 
 @document_rewrite_agent.tool
-def resume_details(ctx: RunContext[DocumentDependency]) -> str:
-    """ Latest resume details in text format """
+def latest_resume_details(ctx: RunContext[DocumentDependency]) -> str:
+    """Get the latest resume details in structured JSON format. This is the current version of the resume that should be modified based on user instructions."""
     data = ctx.deps.session_state.generated_document_data
     if not data: return "No latest resume details found"
-    return f"Latest resume details: {json.dumps(data)}"
+    return f"Latest resume details (JSON): {json.dumps(data, indent=2)}"
+
+
+@document_rewrite_agent.tool
+def original_resume_details(ctx: RunContext[DocumentDependency]) -> str:
+    """Get the original resume details in structured JSON format. This is the initial version of the resume that was extracted from the uploaded document."""
+    data = ctx.deps.session_state.document_data
+    if not data: return "No original resume details found"
+    return f"Original resume details (JSON): {json.dumps(data, indent=2)}"
 
 
 @document_rewrite_agent.tool
 def job_requirement(ctx: RunContext[DocumentDependency]) -> str:
-    """ Job requirement in text format """
+    """Get the job requirement/description in text format. This contains the job posting requirements, qualifications, and key responsibilities that should be used to optimize the resume."""
     description = ctx.deps.session_state.job_description
     if not description: return "No job requirement found"
     return f"Job requirement: {description}"
-
-
-@document_rewrite_agent.tool
-def original_resume_content(ctx: RunContext[DocumentDependency]) -> str:
-    """ Original resume content in text format """
-    content = ctx.deps.session_state.document_parsed
-    if not content: return "No original resume content found"
-    return f"Original resume content: {content}"
