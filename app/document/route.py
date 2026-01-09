@@ -1,3 +1,4 @@
+import json
 import logging
 from fastapi import APIRouter, File, Request, UploadFile, BackgroundTasks, HTTPException
 from app.document.dto import DocumentData, DocumentDataOutput, ExtractDocumentRequest, GenerateDocumentRequest, RewriteDocumentRequest, RewriteDocumentInput, UploadDocumentResult
@@ -58,11 +59,7 @@ async def rewrite_document(request: Request, data: RewriteDocumentInput, session
         session_id = user_session.session.id
         session_state = await session_state_service.get_by_session_id(session_id)
         if not session_state: raise HTTPException(status_code=404, detail="Please upload and parse a document first.")
-        response = await document_service.rewrite_document(RewriteDocumentRequest(
-            input_message=data.input_message,
-            job_requirement=session_state.job_description,
-            resume_content=session_state.document_parsed)
-        )
+        response = await document_service.rewrite_document(session_state=session_state, input_message=data.input_message)
         session_state_dto = SessionStateDto(session_id=session_id, generated_document_data=response.data)
         await usage_service.increment_rewrites(user_session.user.id)
         await session_state_service.create_or_update_session_state(session_state_dto)

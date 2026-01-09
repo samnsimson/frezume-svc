@@ -10,6 +10,7 @@ from weasyprint import HTML
 from sqlmodel.ext.asyncio.session import AsyncSession
 from fastapi import UploadFile, HTTPException
 from app.config import settings
+from app.database.models import SessionState
 from app.document.dto import DocumentData, DocumentDataOutput, RewriteDocumentRequest, UploadDocumentResult
 from app.agent.dto import DocumentDependency
 from app.agent.document_rewrite_agent import document_rewrite_agent
@@ -94,9 +95,9 @@ class DocumentService:
             return result.output
         except Exception as e: raise HTTPException(status_code=500, detail=f"Failed to extract document: {str(e)}")
 
-    async def rewrite_document(self, data: RewriteDocumentRequest) -> DocumentDataOutput:
-        deps = DocumentDependency(job_requirement=data.job_requirement, resume_content=data.resume_content)
-        result = await document_rewrite_agent.run(user_prompt=data.input_message, deps=deps)
+    async def rewrite_document(self, input_message: str, session_state: SessionState) -> DocumentDataOutput:
+        deps = DocumentDependency(session_state=session_state)
+        result = await document_rewrite_agent.run(user_prompt=input_message, deps=deps)
         return result.output
 
     async def generate_document(self, template_name: str, data: DocumentData) -> tuple[str, str]:

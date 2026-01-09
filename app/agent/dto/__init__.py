@@ -1,7 +1,7 @@
 from sqlmodel import Field
 from app.lib.model import BaseModel
+from app.database.models import SessionState
 
 
 class DocumentDependency(BaseModel):
-    job_requirement: str = Field(description="The job requirement in text format")
-    resume_content: str = Field(description="The resume content in markdown format")
+    session_state: SessionState = Field(description="The session state")
