@@ -1,6 +1,6 @@
 import logging
-from fastapi import APIRouter, File, Request, UploadFile, BackgroundTasks
-from app.document.dto import DocumentData, DocumentDataOutput, ExtractDocumentRequest, GenerateDocumentRequest, RewriteDocumentRequest, UploadDocumentResult
+from fastapi import APIRouter, File, Request, UploadFile, BackgroundTasks, HTTPException
+from app.document.dto import DocumentData, DocumentDataOutput, ExtractDocumentRequest, GenerateDocumentRequest, RewriteDocumentRequest, RewriteDocumentInput, UploadDocumentResult
 from app.document.service import DocumentService
 from app.lib.annotations import AuthSession, TransactionSession
 from app.lib.annotations import UageGuard
@@ -43,24 +43,32 @@ async def extract_document(request: Request, data: ExtractDocumentRequest, sessi
     document_service = DocumentService(session)
     session_state_service = SessionStateService(session)
     result = await document_service.extract_document(data.file_content)
-    session_state_dto = SessionStateDto(session_id=user_session.session.id, document_data=result)
+    session_state_dto = SessionStateDto(session_id=user_session.session.id, document_data=result, generated_document_data=result)
     await session_state_service.create_or_update_session_state(session_state_dto)
     return result
 
 
 @router.post("/rewrite", operation_id="rewriteDocument", response_model=DocumentDataOutput)
 @limiter.limit("5/minute")
-async def rewrite_document(request: Request, data: RewriteDocumentRequest, session: TransactionSession, user_session: AuthSession, usage: UageGuard):
+async def rewrite_document(request: Request, data: RewriteDocumentInput, session: TransactionSession, user_session: AuthSession, usage: UageGuard):
     try:
         document_service = DocumentService(session)
         usage_service = UsageService(session)
         session_state_service = SessionStateService(session)
-        response = await document_service.rewrite_document(data)
         session_id = user_session.session.id
-        session_state_dto = SessionStateDto(session_id=session_id, document_data=response.data, generated_document_data=response.data)
+        session_state = await session_state_service.get_by_session_id(session_id)
+        if not session_state: raise HTTPException(status_code=404, detail="Please upload and parse a document first.")
+        response = await document_service.rewrite_document(RewriteDocumentRequest(
+            input_message=data.input_message,
+            job_requirement=session_state.job_description,
+            resume_content=session_state.document_parsed)
+        )
+        session_state_dto = SessionStateDto(session_id=session_id, generated_document_data=response.data)
         await usage_service.increment_rewrites(user_session.user.id)
         await session_state_service.create_or_update_session_state(session_state_dto)
         return response
+    except HTTPException:
+        raise
     except Exception as e:
         logging.error(f"Failed to rewrite document: {str(e)}")
         raise

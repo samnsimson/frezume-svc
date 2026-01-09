@@ -54,6 +54,10 @@ class RewriteDocumentRequest(BaseModel):
     resume_content: str = Field(description="Resume content in text format")
 
 
+class RewriteDocumentInput(BaseModel):
+    input_message: str = Field(description="Input message from the user")
+
+
 class ExtractDocumentRequest(BaseModel):
     file_content: str = Field(description="File content in text format")
 

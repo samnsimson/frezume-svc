@@ -37,6 +37,8 @@ class GatewayService:
             document_url=upload_result.file_url,
             document_parsed=parsed_content,
             document_data=extracted_data,
+            generated_document_data=extracted_data,
+            template_name=data.template_name,
             job_description=data.job_description,
         )
 
