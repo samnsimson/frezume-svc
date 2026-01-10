@@ -1,7 +1,7 @@
 import json
 import logging
 from fastapi import APIRouter, File, Request, UploadFile, BackgroundTasks, HTTPException
-from app.document.dto import DocumentData, DocumentDataOutput, ExtractDocumentRequest, GenerateDocumentRequest, RewriteDocumentRequest, RewriteDocumentInput, UploadDocumentResult
+from app.document.dto import DocumentData, DocumentDataOutput, ExtractDocumentRequest, GenerateDocumentRequest, RewriteDocumentInput, UploadDocumentResult
 from app.document.service import DocumentService
 from app.lib.annotations import AuthSession, TransactionSession
 from app.lib.annotations import UageGuard
