@@ -7,6 +7,7 @@ from app.auth.dto import DeleteAccountResponse, LoginDto, LoginResponseDto, Sign
 from app.auth.service import AuthService
 from app.auth.task import send_verification_email
 from app.lib.annotations import AuthSession, TransactionSession
+from app.lib.decorators.public import public
 from app.lib.limitter import limiter
 from app.session.service import SessionService
 from app.stripe.service import StripeService
@@ -26,6 +27,7 @@ from app.lib.constants import (
 router = APIRouter(tags=["auth"])
 
 
+@public
 @router.post("/sign-in", operation_id="signIn", response_model=LoginResponseDto)
 @limiter.limit("5/minute")
 async def login(request: Request, dto: LoginDto, response: Response, session: TransactionSession):
@@ -37,6 +39,7 @@ async def login(request: Request, dto: LoginDto, response: Response, session: Tr
     return result
 
 
+@public
 @router.post("/sign-up", operation_id="signUp", response_model=User)
 @limiter.limit("5/minute")
 async def signup(request: Request, dto: SignupDto, session: TransactionSession, background_tasks: BackgroundTasks):

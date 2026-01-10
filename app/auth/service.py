@@ -73,7 +73,9 @@ class AuthService:
 
     def verify_jwt_token(self, token: str) -> JwtPayload:
         decoded = self._decode_token(token)
-        return JwtPayload(user=User.model_validate(decoded["user"]), session=SessionModel.model_validate(decoded["session"]), iat=decoded["iat"], exp=decoded["exp"])
+        user = User.model_validate(decoded["user"])
+        session = SessionModel.model_validate(decoded["session"])
+        return JwtPayload(user=user, session=session, iat=decoded["iat"], exp=decoded["exp"])
 
     def get_session_from_request(self, request: Request) -> UserSession | None:
         cookie_token = request.cookies.get(settings.cookie_key)

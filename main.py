@@ -1,10 +1,9 @@
-import logging
 import uvicorn
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from app.config import settings
 from fastapi.middleware.cors import CORSMiddleware
+from app.lib.guards.auth_guard import auth_guard
 from app.lib.limitter import limiter
-from app.middleware.auth_middleware import AuthMiddleware
 from app.middleware.logging_middleware import LoggingMiddleware
 from contextlib import asynccontextmanager
 from app.database import Database
@@ -23,7 +22,12 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Resumevx AI SVC", description="AI Services for Resumevx", lifespan=lifespan)
+app = FastAPI(
+    title="Frezume SVC",
+    description="AI Services for Frezume",
+    lifespan=lifespan,
+    dependencies=[Depends(auth_guard)]
+)
 
 app.state.limiter = limiter
 
@@ -36,7 +40,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"])
 app.add_middleware(LoggingMiddleware)
-app.add_middleware(AuthMiddleware)
+# app.add_middleware(AuthMiddleware)
 
 app.include_router(auth_router, prefix="/auth")
 app.include_router(user_router, prefix="/user")
